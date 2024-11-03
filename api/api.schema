@@ -1,0 +1,571 @@
+
+
+type AuthenticationResult {
+  success @Boolean,
+  status_code @Int,
+  status_message @String
+}
+
+get Authenticate("/authentication"): AuthenticationResult
+
+enum TimeWindow {
+    day
+    week
+}
+
+enum MediaType {
+    tv
+    movie
+}
+
+input TrendingInput {
+    time_window    TimeWindow
+    language       @String @Optional
+}
+
+
+type TrendingItem {
+    adult                @Boolean
+    backdrop_path        @String
+    id                   @Int
+    title                @String
+    name                 @String
+    w342_language    @String
+    w342_title       @String
+    w342_name        @String
+    overview             @String
+    poster_path          @String
+    media_type           MediaType
+    genre_ids            @Int[]
+    popularity           @Float
+    release_date         @String @Optional
+    first_air_date       @String @Optional
+    origin_country       @String[] @Optional
+    video                @Boolean
+    vote_average         @Float
+    vote_count           @Int
+}
+
+type TrendingResponse {
+    page            @Int
+    results         TrendingItem[]
+    total_pages     @Int
+    total_results   @Int
+}
+
+get TrendingAll("/trending/all/[time_window]", TrendingInput): TrendingResponse
+
+get TrendingMovies("/trending/movie/[time_window]", TrendingInput): TrendingResponse
+
+get TrendingTVShows("/trending/tv/[time_window]", TrendingInput): TrendingResponse
+
+
+type Configuration {
+  images       ConfigurationImages
+  change_keys  @String[]
+}
+
+type ConfigurationImages {
+  base_url          @String
+  secure_base_url   @String
+  backdrop_sizes    @String[]
+  logo_sizes        @String[]
+  poster_sizes      @String[]
+  profile_sizes     @String[]
+  still_sizes       @String[]
+}
+
+get Configuration("/configuration"): Configuration
+
+enum SortBy {
+    popularity
+    popularity.desc
+    release_date
+    revenue
+    primary_release_date
+    w342_title
+    vote_average
+    vote_count
+    last_air_date.desc
+}
+
+input DiscoverMovieInput {
+    page          @Int @Optional
+    sort_by       @String @Optional
+    year          @Int @Optional
+    primary_release_year @Int @Optional
+    language      @String @Optional
+    region        @String @Optional
+    certification_country @String @Optional
+    certification @String @Optional
+    include_adult @Boolean @Optional
+    include_video @Boolean @Optional
+    with_people   @String @Optional
+    with_genres   @String @Optional
+    without_genres @String @Optional
+    with_keywords @String @Optional
+    without_keywords @String @Optional
+    with_runtime_gte @Int @Optional
+    with_runtime_lte @Int @Optional
+    with_release_type @Int @Optional
+    with_w342_language @String @Optional
+    "primary_release_date.lte" @String @Optional
+}
+
+type Movie {
+    adult               @Boolean
+    backdrop_path       @String
+    genre_ids           @Int[]
+    id                  @Int
+    w342_language   @String
+    w342_title      @String
+    overview            @String
+    poster_path         @String
+    release_date        @String
+    title               @String
+    popularity          @Float
+    video               @Boolean
+    vote_average        @Float
+    vote_count          @Int
+    quality             @String @Optional
+}
+
+type DiscoverMovieResponse {
+    page           @Int
+    total_results  @Int
+    total_pages    @Int
+    results        Movie[]
+}
+
+get DiscoverMovies("/discover/movie", DiscoverMovieInput): DiscoverMovieResponse
+
+
+
+type MovieRecommendationInput {
+    movie_id    @Int
+    page        @Int @Optional
+}
+
+type MovieRecommendationsResponse {
+    page           @Int
+    total_results  @Int
+    total_pages    @Int
+    results        Movie[]
+}
+
+get MovieRecommendations("/movie/[movie_id]/recommendations", MovieRecommendationInput): MovieRecommendationsResponse
+
+
+type MovieSimilarInput {
+    movie_id    @Int
+    page        @Int @Optional
+}
+
+type MovieSimilarResponse {
+    page           @Int
+    total_results  @Int
+    total_pages    @Int
+    results        Movie[]
+}
+
+get MovieSimilar("/movie/[movie_id]/similar", MovieSimilarInput): MovieSimilarResponse
+
+
+
+input DiscoverTVInput {
+    page          @Int @Optional
+    sort_by       @String @Optional
+    first_air_date_year @Int @Optional
+    language      @String @Optional
+    timezone      @String @Optional
+    vote_average_gte @Float @Optional
+    vote_count_gte @Int @Optional
+    with_genres   @String @Optional
+    with_networks @String @Optional
+    without_genres @String @Optional
+    with_keywords @String @Optional
+    without_keywords @String @Optional
+    with_w342_language @String @Optional
+    include_null_first_air_dates @Boolean @Optional
+    include_adult   @Boolean @Optional
+    "first_air_date.lte" @String @Optional
+}
+
+type TVShow {
+    backdrop_path       @String
+    first_air_date      @String
+    genre_ids           @Int[]
+    id                  @Int
+    name                @String
+    origin_country      @String[]
+    w342_language   @String
+    w342_name       @String
+    overview            @String
+    popularity          @Float
+    poster_path         @String
+    vote_average        @Float
+    vote_count          @Int
+}
+
+type DiscoverTVResponse {
+    page           @Int
+    total_results  @Int
+    total_pages    @Int
+    results        TVShow[]
+}
+
+get DiscoverTVShows("/discover/tv", DiscoverTVInput): DiscoverTVResponse
+
+type TVRecommendationInput {
+    series_id    @Int
+    page        @Int @Optional
+}
+
+type TVRecommendationsResponse {
+    page           @Int
+    total_results  @Int
+    total_pages    @Int
+    results        TVShow[]
+}
+
+get TVRecommendations("/tv/[series_id]/recommendations", TVRecommendationInput): TVRecommendationsResponse
+
+
+type TVSimilarInput {
+    series_id    @Int
+    page        @Int @Optional
+}
+
+type TVSimilarResponse {
+    page           @Int
+    total_results  @Int
+    total_pages    @Int
+    results        TVShow[]
+}
+
+get TVSimilar("/tv/[series_id]/similar", TVSimilarInput): TVSimilarResponse
+
+
+input MovieDetailsInput {
+    append_to_response  @String @Optional
+    movie_id           @Int
+}
+
+type Genre {
+    id      @Int
+    name    @String
+}
+
+type ProductionCompany {
+    id                  @Int
+    logo_path           @String
+    name                @String
+    origin_country      @String
+}
+
+type ProductionCountry {
+    iso_3166_1          @String
+    name                @String
+}
+
+type SpokenLanguage {
+    iso_639_1           @String
+    name                @String
+    english_name        @String @Optional
+
+}
+
+type BelongsToCollection {
+    id              @Int
+    name            @String
+    poster_path     @String @Optional
+    backdrop_path   @String @Optional
+}
+
+type MovieDetails {
+    adult               @Boolean
+    backdrop_path       @String
+    belongs_to_collection   BelongsToCollection
+    budget              @Int
+    genres              Genre[]
+    homepage            @String
+    id                  @Int
+    imdb_id             @String
+    w342_language   @String
+    w342_title      @String
+    overview            @String
+    popularity          @Float
+    poster_path         @String
+    production_companies ProductionCompany[]
+    production_countries ProductionCountry[]
+    release_date        @String
+    revenue             @Int
+    runtime             @Int
+    spoken_languages    SpokenLanguage[]
+    status              @String
+    tagline             @String
+    title               @String
+    video               @Boolean
+    vote_average        @Float
+    vote_count          @Int
+    similar             DiscoverMovieResponse @Optional
+    videos              VideoList   @Optional
+    external_ids        ExternalIds @@Optional
+    credits            Credit @Optional
+
+}
+
+enum AppendToResponse {
+    images
+    videos
+    credits
+    external_ids
+    similar
+    recommendations
+}
+
+type Image {
+    aspect_ratio        @Float
+    file_path           @String
+    height              @Int
+    width               @Int
+    vote_average        @Float
+    vote_count          @Int
+}
+
+type Video {
+    id                  @String
+    iso_639_1           @String
+    iso_3166_1          @String
+    key                 @String
+    name                @String
+    site                @String
+    size                @Int
+    type                @String
+}
+
+type VideoList {
+    results             Video[]
+}
+
+type Credit {
+    id                  @String
+    cast                Cast[]
+    crew                Crew[]
+}
+
+type Cast {
+    cast_id             @Int
+    character           @String
+    credit_id           @String
+    gender              @Int
+    id                  @Int
+    name                @String
+    order               @Int
+    profile_path        @String
+}
+
+type Crew {
+    credit_id           @String
+    department          @String
+    gender              @Int
+    id                  @Int
+    job                 @String
+    name                @String
+    profile_path        @String
+}
+
+type ExternalIds {
+    imdb_id             @String
+    wikidata_id         @String @Optional
+    facebook_id         @String @Optional
+    instagram_id        @String @Optional
+    twitter_id          @String @Optional
+}
+
+get MovieDetails("/movie/[movie_id]", MovieDetailsInput): MovieDetails
+
+
+
+input TVDetailsInput {
+    append_to_response  @String @Optional
+    tv_id               @Int
+}
+
+type Genre {
+    id      @Int
+    name    @String
+}
+
+type ProductionCompany {
+    id                  @Int
+    logo_path           @String
+    name                @String
+    origin_country      @String
+}
+
+type ProductionCountry {
+    iso_3166_1          @String
+    name                @String
+}
+
+type SpokenLanguage {
+    iso_639_1           @String
+    name                @String
+}
+
+type TVDetails {
+    backdrop_path       @String
+    created_by          Creator[]
+    episode_run_time    @Int[]
+    first_air_date      @String
+    genres              Genre[]
+    homepage            @String
+    id                  @Int
+    in_production       @Boolean
+    languages           @String[]
+    last_air_date       @String
+    last_episode_to_air Episode
+    name                @String
+    networks            Network[]
+    next_episode_to_air Episode
+    number_of_episodes  @Int
+    number_of_seasons   @Int
+    origin_country      @String[]
+    w342_language   @String
+    w342_name       @String
+    overview            @String
+    popularity          @Float
+    poster_path         @String
+    production_companies ProductionCompany[]
+    production_countries ProductionCountry[]
+    seasons             Season[]
+    spoken_languages    SpokenLanguage[]
+    status              @String
+    tagline             @String
+    type                @String
+    vote_average        @Float
+    vote_count          @Int
+    similar             DiscoverTVResponse @Optional
+    videos              VideoList   @Optional
+    external_ids        ExternalIds @@Optional
+    credits            Credit @Optional
+}
+
+type Creator {
+    id                  @Int
+    credit_id           @String
+    name                @String
+    gender              @Int
+    profile_path        @String
+}
+
+type Episode {
+    air_date            @String
+    episode_number      @Int
+    id                  @Int
+    name                @String
+    overview            @String
+    production_code     @String
+    season_number       @Int
+    still_path          @String
+    vote_average        @Float
+    vote_count          @Int
+}
+
+type Network {
+    id                  @Int
+    logo_path           @String
+    name                @String
+    origin_country      @String
+}
+
+type Season {
+    air_date            @String
+    episode_count       @Int
+    id                  @Int
+    name                @String
+    overview            @String
+    poster_path         @String
+    season_number       @Int
+}
+
+get TVDetails("/tv/[tv_id]", TVDetailsInput): TVDetails
+
+type MovieSearchResponse {
+    page           @Int
+    total_results  @Int
+    total_pages    @Int
+    results        Movie[]
+}
+
+input MovieSearchInput {
+    query             @String
+    page              @Int
+    language          @String @Optional
+    include_adult     @Boolean  @Optional
+    region            @String   @Optional
+    year              @Int  @Optional
+    primary_release_year @Int @Optional
+}
+
+get SearchMovies("/search/movie", MovieSearchInput): MovieSearchResponse
+
+type TVSearchResponse {
+    page           @Int
+    total_results  @Int
+    total_pages    @Int
+    results        TVShow[]
+}
+
+input TVSearchInput {
+    query             @String
+    page              @Int  @Optional
+    language          @String   @Optional
+    include_adult     @Boolean  @Optional
+    first_air_date_year @Int    @Optional
+}
+
+get SearchTVSeries("/search/tv", TVSearchInput): TVSearchResponse
+
+
+type StreamingLinks {
+  season_number  @Int
+  episode_number @Int
+  title          @String
+  tmdb_id        @Int
+  quality        @String
+  embed_url_tmdb @String
+  domain         @String
+}
+
+type SeasonDetails {
+    _id                 @String
+    air_date            @String
+    episodes            Episode[]
+    name                @String
+    overview            @String
+    id                  @Int
+    poster_path         @String
+    season_number       @Int
+}
+
+type Episode {
+    air_date            @String
+    episode_number      @Int
+    id                  @Int
+    name                @String
+    overview            @String
+    production_code     @String
+    season_number       @Int
+    still_path          @String
+    vote_average        @Float
+    vote_count          @Int
+}
+
+input SeasonDetailsInput {
+    tv_id           @Int
+    season_number   @Int
+}
+
+get SeasonDetails("/tv/[tv_id]/season/[season_number]", SeasonDetailsInput): SeasonDetails

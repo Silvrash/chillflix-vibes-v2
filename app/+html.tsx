@@ -1,5 +1,6 @@
-import { ScrollViewStyleReset } from 'expo-router/html';
-import { type PropsWithChildren } from 'react';
+import { Colors } from "@/constants/Colors";
+import { ScrollViewStyleReset } from "expo-router/html";
+import { type PropsWithChildren } from "react";
 
 /**
  * This file is web-only and used to configure the root HTML for every web page during static rendering.
@@ -23,17 +24,77 @@ export default function Root({ children }: PropsWithChildren) {
         <style dangerouslySetInnerHTML={{ __html: responsiveBackground }} />
         {/* Add any additional <head> elements that you want globally available on web... */}
       </head>
-      <body>{children}</body>
+      <body>
+        <div className="container">{children}</div>
+      </body>
     </html>
   );
 }
 
 const responsiveBackground = `
 body {
-  background-color: #fff;
+  background-color: ${Colors.dark.background};
+  width: 100%;
 }
-@media (prefers-color-scheme: dark) {
-  body {
-    background-color: #000;
+
+#root {
+  width: 100%;
+}
+
+input:focus-visible {
+  outline: none
+}
+
+/* Container with content to scroll */
+   
+
+    /* Custom scrollbar styles */
+   ::-webkit-scrollbar {
+      width: 10px;
+    }
+
+   ::-webkit-scrollbar-track {
+      background: #192e57; /* Track color */
+      border-radius: 5px;
+    }
+
+   ::-webkit-scrollbar-thumb {
+      background-color: #1f468e; /* Scroll bar color */
+      border-radius: 5px;
+    }
+
+   ::-webkit-scrollbar-thumb:hover {
+      background-color: #050a15; /* Hover color */
+    }
+
+.container {
+  width: 100%;
+  height: 100%;
+  margin: 0 auto;
+}
+@media (min-width: 640px) {
+  .container {
+    max-width: 640px;
   }
-}`;
+}
+@media (min-width: 768px) {
+  .container {
+    max-width: 768px;
+  }
+}
+@media (min-width: 1024px) {
+  .container {
+    max-width: 1024px;
+  }
+}
+@media (min-width: 1280px) {
+  .container {
+    max-width: 1280px;
+  }
+}
+@media (min-width: 1536px) {
+  .container {
+    max-width: 1536px;
+  }
+}
+  `;
