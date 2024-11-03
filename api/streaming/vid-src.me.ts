@@ -29,22 +29,22 @@ export interface VidSrcMeMovie {
 export class VidSrcMe extends StreamingService<VidSrcResponse<VidSrcMeMovie>, VidSrcResponse<VidSrcMeTvShow>> {
   domains = ["vidsrc.me", "vidsrc.xyz", "vidsrc.in", "vidsrc.pm", "vidsrc.net"];
 
-  getMovieLink(tmdbId: number) {
+  getMovieLink(tmdbId: number | string) {
     const domain = this.activeDomain ?? this.domains[0];
     return `https://${domain}/embed/movie?tmdb=${tmdbId}&ds_lang=${this.language}`;
   }
 
-  getEpisodeLink(tmdbId: number, season: number, ep: number) {
+  getEpisodeLink(tmdbId: number | string, season: number | string, ep: number | string) {
     const domain = this.activeDomain ?? this.domains[0];
     return `https://${domain}/embed/tv?tmdb=${tmdbId}&season=${season}&episode=${ep}&ds_lang=${this.language}`;
   }
-  async getLatestMovies(page: number) {
+  async getLatestMovies(page: number | string) {
     const domain = this.activeDomain ?? this.domains[0];
 
     return axios.get<VidSrcResponse<VidSrcMeMovie>>(`https://${domain}/movies/latest/page-${page}.json`);
   }
 
-  async getLatestTvShows(page: number) {
+  async getLatestTvShows(page: number | string) {
     const domain = this.activeDomain ?? this.domains[0];
 
     return axios.get<VidSrcResponse<VidSrcMeTvShow>>(`https://${domain}/tvshows/latest/page-${page}.json`);

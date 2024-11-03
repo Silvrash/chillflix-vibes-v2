@@ -33,11 +33,11 @@ export class VidSrcTo extends StreamingService<VidSrcResponse<VidSrcMovie>, VidS
   activeDomain = "vidsrc.to";
   domains = [this.activeDomain];
 
-  getMovieLink(tmdbId: number) {
+  getMovieLink(tmdbId: number | string) {
     return `https://${this.activeDomain}/embed/movie/${tmdbId}?ds_lang=${this.language}`;
   }
 
-  getEpisodeLink(tmdbId: number, season: number, ep: number) {
+  getEpisodeLink(tmdbId: number | string, season: number | string, ep: number | string) {
     return `https://${this.activeDomain}/embed/tv/${tmdbId}/${season}/${ep}?ds_lang=${this.language}`;
   }
 

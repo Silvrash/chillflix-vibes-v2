@@ -1,3 +1,4 @@
+import { VidSrcMe } from "@/api/streaming/vid-src.me";
 import { getMovieDetailsQuery, getSeasonDetailsQuery, getTVDetailsQuery, MediaType } from "@/api/tmdb";
 import { ConditionRenderComponent, ThemedTextIf, ThemedViewIf } from "@/components/ConditionRender";
 import PlayerView from "@/components/PlayerView";
@@ -40,11 +41,12 @@ const Player = () => {
   if (!id || !type) return <Redirect href="/(media)/movies" />;
 
   function getVideoUrl() {
+    const vidSrc = new VidSrcMe();
     switch (type) {
       case MediaType.movie:
-        return `https://vidsrc.icu/embed/movie/${id}`;
+        return vidSrc.getMovieLink(id);
       case MediaType.tv:
-        return `https://vidsrc.icu/embed/tv/${id}/${seasonValue}/${episodeValue}`;
+        return vidSrc.getEpisodeLink(id, seasonValue, episodeValue);
       default:
         return "";
     }

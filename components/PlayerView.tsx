@@ -1,5 +1,5 @@
 import axios from "axios";
-import React, { useEffect } from "react";
+import React from "react";
 import { useWindowDimensions, View } from "react-native";
 import WebView from "react-native-webview";
 import { Colors } from "react-native/Libraries/NewAppScreen";
@@ -10,25 +10,25 @@ interface PlayerViewProps {
 
 const PlayerView = ({ link }: PlayerViewProps) => {
   const dimensions = useWindowDimensions();
-  const [mediaURL, setMediaURL] = React.useState<string | null>(null);
+  // const [mediaURL, setMediaURL] = React.useState<string>(link);
 
-  useEffect(() => {
-    setMediaURL(link);
-  }, []);
+  // useEffect(() => {
+  //   setMediaURL(link);
+  // }, []);
 
   const adBlockerJS = `
     document.querySelectorAll('[id*="ad"], [class*="ad"], [class*="popup"], [id*="popup"]').forEach(el => el.remove());
     true; // Required to prevent WebView from showing error
   `;
 
-  const searchParams = new URLSearchParams(mediaURL?.split("?")[1]);
-  searchParams.set("autoplay", "true");
-  searchParams.set("ds_lang", "en");
-  const finalUrl = mediaURL ? `${mediaURL.split("?")[0]}?${searchParams.toString()}` : null;
+  // const searchParams = new URLSearchParams(mediaURL?.split("?")[1]);
+  // searchParams.set("autoplay", "true");
+  // searchParams.set("ds_lang", "en");
+  // const finalUrl = mediaURL ? `${mediaURL.split("?")[0]}?${searchParams.toString()}` : null;
 
-  console.log("finalUrl", finalUrl);
+  // console.log("finalUrl", finalUrl);
 
-  if (!mediaURL) return null;
+  // if (!mediaURL) return null;
 
   return (
     <View
@@ -42,7 +42,7 @@ const PlayerView = ({ link }: PlayerViewProps) => {
       }}
     >
       <WebView
-        key={finalUrl}
+        key={link}
         originWhitelist={["*"]}
         automaticallyAdjustContentInsets={false}
         javaScriptCanOpenWindowsAutomatically
@@ -56,7 +56,6 @@ const PlayerView = ({ link }: PlayerViewProps) => {
         setSupportMultipleWindows={false}
         onShouldStartLoadWithRequest={(request) => {
           console.log("request", request.url);
-          axios.get(request.url);
 
           // if (request.url.includes("vidsrc") || request.url.includes('rcp') ) setMediaURL(request.url);
           // Intercept and block popups or ad URLs based on conditions
@@ -64,15 +63,17 @@ const PlayerView = ({ link }: PlayerViewProps) => {
           if (request.url.includes("about:blank") || request.url.includes("about:srcdoc")) {
             return false;
           }
-          if (request.url.includes("vidsrc") || request.url.includes("rcp") || request.url.includes("cloudflare.com")) {
+          if (request.url.includes("vidsrc") || request.url.includes("rcp")) {
             return true;
           }
 
-          axios.get(request.url).catch(() => {});
+          axios.get(request.url).catch((e) => {
+            console.log("error", e);
+          });
           return false;
         }}
         // userAgent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.90 Safari/537.36"
-        source={{ uri: finalUrl! }}
+        source={{ uri: link! }}
         style={{ backgroundColor: Colors.dark.background, width: Math.min(dimensions.width, dimensions.height) }}
         forceDarkOn
         onError={(error) => console.log(error)}
