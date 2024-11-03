@@ -8,7 +8,7 @@ interface PlayerViewProps {
 }
 
 const PlayerView = ({ link }: PlayerViewProps) => {
-  const dimensions = useWindowDimensions()
+  const dimensions = useWindowDimensions();
 
   const adBlockerJS = `
     document.querySelectorAll('[id*="ad"], [class*="ad"], [class*="popup"], [id*="popup"]').forEach(el => el.remove());

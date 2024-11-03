@@ -3,7 +3,7 @@ import {
   getTVDetailsQuery,
   getTVRecommendationsInfiniteQuery,
   getTVSimilarInfiniteQuery,
-  MediaType
+  MediaType,
 } from "@/api/tmdb";
 import { appendToResponse } from "@/constants/utilities";
 import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -17,7 +17,7 @@ export function useTvShowMediaQueries(id: number, type: MediaType) {
         tv_id: id,
         append_to_response: appendToResponse(AppendToResponse.credits, AppendToResponse.images, AppendToResponse.videos),
       },
-    })
+    }),
   );
 
   const similarQuery = useInfiniteQuery(
@@ -27,7 +27,7 @@ export function useTvShowMediaQueries(id: number, type: MediaType) {
       initialPageParam: 1,
       getNextPageParam: (lastPage) => lastPage.page + 1,
       getPreviousPageParam: (firstPage) => (firstPage.page <= 1 ? undefined : firstPage.page - 1),
-    })
+    }),
   );
 
   const recommendedQuery = useInfiniteQuery(
@@ -37,7 +37,7 @@ export function useTvShowMediaQueries(id: number, type: MediaType) {
       initialPageParam: 1,
       getNextPageParam: (lastPage) => lastPage.page + 1,
       getPreviousPageParam: (firstPage) => (firstPage.page <= 1 ? undefined : firstPage.page - 1),
-    })
+    }),
   );
 
   return { query, similarQuery, recommendedQuery };

@@ -6,7 +6,7 @@ import { format } from "date-fns";
 import { Router } from "expo-router";
 
 export function createURLSearchParams<T extends Array<[string, unknown] | undefined | readonly [string, unknown]>>(
-  params: T
+  params: T,
 ): string {
   const searchParams = new URLSearchParams();
   params.forEach((param) => {

@@ -28,7 +28,7 @@ const Player = () => {
         season_number: 1,
         tv_id: parseInt(id),
       },
-    })
+    }),
   );
 
   const movie = useQuery(getMovieDetailsQuery({ enabled: type === MediaType.movie, variables: { movie_id: parseInt(id) } }));
@@ -58,7 +58,6 @@ const Player = () => {
     AsyncStorage.getItem(`${type}-${id}-episode`).then((value) => {
       if (value) setEpisodeValue(parseInt(value));
     });
-
   }, []);
 
   useEffect(() => {

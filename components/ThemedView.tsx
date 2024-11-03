@@ -10,20 +10,9 @@ export type ThemedViewProps = ViewProps & {
   animated?: boolean;
 };
 
-export function ThemedView({
-  style,
-  lightColor,
-  darkColor,
-  safeArea,
-  ...otherProps
-}: ThemedViewProps) {
+export function ThemedView({ style, lightColor, darkColor, safeArea, ...otherProps }: ThemedViewProps) {
   const backgroundColor = useThemeColor("background");
   const safeAreaInsets = useSafeAreaInsets();
 
-  return (
-    <View
-      style={[{ backgroundColor, paddingTop: safeArea ? safeAreaInsets.top : undefined }, style]}
-      {...otherProps}
-    />
-  );
+  return <View style={[{ backgroundColor, paddingTop: safeArea ? safeAreaInsets.top : undefined }, style]} {...otherProps} />;
 }

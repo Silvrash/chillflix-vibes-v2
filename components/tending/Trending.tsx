@@ -56,7 +56,6 @@ const Trending = ({ mediaType, animeOnly }: TrendingProps) => {
         <ConditionRenderComponent renderIf={isSuccess}>
           <CarouselView data={data} animeOnly={animeOnly} />
         </ConditionRenderComponent>
-      
       </ThemedView>
     </ThemedView>
   );

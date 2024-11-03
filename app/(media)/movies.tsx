@@ -23,7 +23,7 @@ const Movies = () => {
       initialPageParam: 1,
       getNextPageParam: (lastPage) => lastPage.page + 1,
       getPreviousPageParam: (firstPage) => (firstPage.page <= 1 ? undefined : firstPage.page - 1),
-    })
+    }),
   );
 
   const search = useInfiniteQuery(
@@ -33,7 +33,7 @@ const Movies = () => {
       initialPageParam: 1,
       getNextPageParam: (lastPage) => lastPage.page + 1,
       getPreviousPageParam: (firstPage) => (firstPage.page <= 1 ? undefined : firstPage.page - 1),
-    })
+    }),
   );
 
   return (

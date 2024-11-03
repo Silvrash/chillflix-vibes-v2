@@ -16,7 +16,7 @@ export function useMovieMediaQueries(id: number, type: MediaType) {
         movie_id: id,
         append_to_response: appendToResponse(AppendToResponse.credits, AppendToResponse.images, AppendToResponse.videos),
       },
-    })
+    }),
   );
 
   const similarQuery = useInfiniteQuery(
@@ -26,7 +26,7 @@ export function useMovieMediaQueries(id: number, type: MediaType) {
       initialPageParam: 1,
       getNextPageParam: (lastPage) => lastPage.page + 1,
       getPreviousPageParam: (firstPage) => (firstPage.page <= 1 ? undefined : firstPage.page - 1),
-    })
+    }),
   );
 
   const recommendedQuery = useInfiniteQuery(
@@ -36,7 +36,7 @@ export function useMovieMediaQueries(id: number, type: MediaType) {
       initialPageParam: 1,
       getNextPageParam: (lastPage) => lastPage.page + 1,
       getPreviousPageParam: (firstPage) => (firstPage.page <= 1 ? undefined : firstPage.page - 1),
-    })
+    }),
   );
 
   return { query, similarQuery, recommendedQuery, seasonDetails: null };

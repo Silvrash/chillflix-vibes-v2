@@ -20,11 +20,11 @@ export function addPlaceholders<T>(data: ListViewProps<T>["data"], numColumns: n
 function ListView<ItemT>({ isLoading, useFlashList, ...props }: ListViewProps<ItemT>, ref: ForwardedRef<FlatList<ItemT>>) {
   const data = useMemo(
     () => (!!props.numColumns ? addPlaceholders(props.data, props.numColumns) : props.data),
-    [props.numColumns, props.data]
+    [props.numColumns, props.data],
   );
 
   function keyExtractor(item: ItemT, index: number) {
-    return (item as any)?.id === "placeholder" ? `placeholder-${index}` : props.keyExtractor?.(item, index) ?? index.toString();
+    return (item as any)?.id === "placeholder" ? `placeholder-${index}` : (props.keyExtractor?.(item, index) ?? index.toString());
   }
 
   function renderItem(info: ListRenderItemInfo<ItemT>) {
@@ -42,4 +42,6 @@ function ListView<ItemT>({ isLoading, useFlashList, ...props }: ListViewProps<It
   return <List {...props} ref={ref} data={data} keyExtractor={keyExtractor} renderItem={renderItem} />;
 }
 
-export default forwardRef(ListView) as <ItemT>(props: ListViewProps<ItemT> & { ref?: ForwardedRef<FlatList<ItemT>> }) => JSX.Element;
+export default forwardRef(ListView) as <ItemT>(
+  props: ListViewProps<ItemT> & { ref?: ForwardedRef<FlatList<ItemT>> },
+) => JSX.Element;

@@ -15,7 +15,7 @@ function useDynamicColumns() {
     const itemWidth = 127.3;
     let deviceWidth = dimensions.width;
 
-    if(Platform.OS === "web") {
+    if (Platform.OS === "web") {
       deviceWidth = document.getElementById("root")?.clientWidth || deviceWidth;
     }
     const columns = Math.floor(deviceWidth / itemWidth);

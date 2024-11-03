@@ -24,7 +24,7 @@ const TrendingItemView = ({ item, onPress }: TrendingItemProps) => {
         style={[styles.container, { paddingTop: safeAreaInset.top }]}
         imageStyle={{ aspectRatio: 16 / 9 }}
         contentFit="cover"
-        contentPosition={'center'}
+        contentPosition={"center"}
       >
         <View style={[StyleSheet.absoluteFill, { backgroundColor: "rgba(0,0,0,0.2)" }]} />
         <ThemedText color="#d1d5db" type="title">
