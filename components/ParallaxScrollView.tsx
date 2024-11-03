@@ -72,7 +72,7 @@ export default function ParallaxScrollView<ItemT>({
           translateY: interpolate(
             scrollOffset.value,
             [-HEADER_HEIGHT, 0, HEADER_HEIGHT],
-            [-HEADER_HEIGHT / 2, 0, HEADER_HEIGHT * 0.75],
+            [-HEADER_HEIGHT / 2, 0, HEADER_HEIGHT * 0.75]
           ),
         },
         {
@@ -84,8 +84,9 @@ export default function ParallaxScrollView<ItemT>({
 
   const stickyHeaderStyle = useAnimatedStyle(() => {
     return {
-      paddingTop: (!isSearching && scrollOffset.value < HEADER_HEIGHT ? 0 : safeAreaInsets.top) + 16,
-      paddingBottom: 16,
+      paddingTop:
+        (!isSearching && scrollOffset.value < HEADER_HEIGHT ? 0 : safeAreaInsets.top) + (Platform.OS === "web" ? 16 : 0),
+      paddingBottom: Platform.OS === "web" ? 16 : 8,
       backgroundColor,
       flexDirection: "row",
       alignItems: "center",
