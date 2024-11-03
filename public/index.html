@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="%LANG_ISO_CODE%">
+  <head>
+    <meta charset="utf-8" />
+    <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <link rel="manifest" href="/manifest.json" />
+    <title>%WEB_TITLE%</title>
+    <!-- The `react-native-web` recommended style reset: https://necolas.github.io/react-native-web/docs/setup/#root-element -->
+    <style id="expo-reset">
+      /* These styles make the body full-height */
+      html,
+      body {
+        height: 100%;
+      }
+      /* These styles disable body scrolling if you are using <ScrollView> */
+      body {
+        overflow: hidden;
+      }
+      /* These styles make the root element full-height */
+      #root, .container {
+        display: flex;
+        height: 100%;
+        flex: 1;
+      }
+      body {
+        background-color: #101827;
+        width: 100%;
+      }
+
+      #root, .container {
+        width: 100%;
+      }
+
+      input:focus-visible, button:focus-visible, input:focus, button:focus {
+        outline: none;
+      }
+
+      /* #root with content to scroll */
+
+      /* Custom scrollbar styles */
+      ::-webkit-scrollbar {
+        width: 10px;
+      }
+
+      ::-webkit-scrollbar-track {
+        background: #192e57; /* Track color */
+        border-radius: 5px;
+      }
+
+      ::-webkit-scrollbar-thumb {
+        background-color: #1f468e; /* Scroll bar color */
+        border-radius: 5px;
+      }
+
+      ::-webkit-scrollbar-thumb:hover {
+        background-color: #050a15; /* Hover color */
+      }
+
+      #root, .container {
+        width: 100%;
+        height: 100%;
+        margin: 0 auto;
+      }
+
+      @media (min-width: 640px) {
+        #root, .container {
+          max-width: 640px;
+        }
+      }
+      @media (min-width: 768px) {
+        #root, .container {
+          max-width: 768px;
+        }
+      }
+      @media (min-width: 1024px) {
+        #root, .container {
+          max-width: 1024px;
+        }
+      }
+      @media (min-width: 1280px) {
+        #root, .container {
+          max-width: 1280px;
+        }
+      }
+      @media (min-width: 1536px) {
+        #root, .container {
+          max-width: 1536px;
+        }
+      }
+    </style>
+  </head>
+
+  <body className="">
+    <!-- Use static rendering with Expo Router to support running without JavaScript. -->
+    <noscript> You need to enable JavaScript to run this app. </noscript>
+    <!-- The root element for your Expo app. -->
+    <div id="root"></div>
+  </body>
+</html>

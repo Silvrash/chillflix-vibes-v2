@@ -27,6 +27,16 @@ const presets = {
       },
     },
     {
+      name: "Hindu Movies",
+      filters: {
+        with_original_language: "hi", // Hindi language
+        region: "IN", // Region set to India
+        sort_by: "popularity.desc", // Sort by popularity
+        "vote_average.gte": 5, // Minimum rating for quality
+        // "release_date.gte": `${new Date().getFullYear() - 10}-01-01`, // Limit to the last 10 years
+      },
+    },
+    {
       name: "Family-Friendly Movies",
       filters: {
         with_genres: "10751",
@@ -56,7 +66,17 @@ const presets = {
       filters: {
         with_genres: "10749,35",
         sort_by: "release_date.desc",
-        "primary_release_date.gte": `${new Date().getFullYear() - 23}-01-01`,
+        // "primary_release_date.gte": `${new Date().getFullYear() - 23}-01-01`,
+      },
+    },
+    {
+      name: "Korean Movies",
+      filters: {
+        with_original_language: "ko", // Korean language
+        region: "KR", // Region set to South Korea
+        sort_by: "popularity.desc", // Sort by popularity
+        "vote_average.gte": 6, // Minimum rating for quality
+        // "release_date.gte": `${new Date().getFullYear() - 10}-01-01`, // Limit to the last 10 years
       },
     },
     {
@@ -65,7 +85,7 @@ const presets = {
         with_genres: "27",
         "vote_average.gte": 6.0,
         sort_by: "vote_count.desc",
-        "primary_release_date.gte": "1980-01-01",
+        // "primary_release_date.gte": "1980-01-01",
       },
     },
     {
@@ -73,7 +93,7 @@ const presets = {
       filters: {
         with_genres: "16",
         sort_by: "revenue.desc",
-        "primary_release_date.gte": "1995-01-01",
+        // "primary_release_date.gte": "1995-01-01",
       },
     },
     {
@@ -90,7 +110,7 @@ const presets = {
         with_genres: "878",
         sort_by: "popularity.desc",
         "vote_count.gte": 300,
-        "primary_release_date.gte": `${new Date().getFullYear() - 23}-01-01`,
+        // "primary_release_date.gte": `${new Date().getFullYear() - 23}-01-01`,
       },
     },
   ],
@@ -151,7 +171,27 @@ const presets = {
       filters: {
         with_genres: "10749,35",
         sort_by: "first_air_date.desc",
-        "first_air_date.gte": `${new Date().getFullYear() - 23}-01-01`,
+        // "first_air_date.gte": `${new Date().getFullYear() - 23}-01-01`,
+      },
+    },
+    {
+      name: "Korean TV Shows",
+      filters: {
+        with_original_language: "ko", // Korean language
+        region: "KR", // Region set to South Korea
+        sort_by: "popularity.desc", // Sort by popularity
+        // "vote_average.gte": 6, // Minimum rating for quality
+        // "first_air_date.gte": `${new Date().getFullYear() - 10}-01-01`  // Limit to the last 10 years
+      },
+    },
+    {
+      name: "Hindu TV Shows",
+      filters: {
+        with_original_language: "hi", // Hindi language
+        region: "IN", // Region set to India
+        sort_by: "popularity.desc", // Sort by popularity
+        "vote_average.gte": 5, // Minimum rating for quality
+        // "first_air_date.gte": `${new Date().getFullYear() - 10}-01-01`, // Limit to the last 10 years
       },
     },
     {
@@ -160,7 +200,7 @@ const presets = {
         with_genres: "9648,80",
         "vote_average.gte": 6.0,
         sort_by: "vote_count.desc",
-        "first_air_date.gte": "1980-01-01",
+        // "first_air_date.gte": "1980-01-01",
       },
     },
     {
@@ -168,7 +208,7 @@ const presets = {
       filters: {
         with_genres: "16",
         sort_by: "popularity.desc",
-        "first_air_date.gte": "1995-01-01",
+        // "first_air_date.gte": "1995-01-01",
       },
     },
     {
@@ -185,7 +225,7 @@ const presets = {
         with_genres: "10765",
         sort_by: "popularity.desc",
         "vote_count.gte": 300,
-        "first_air_date.gte": `${new Date().getFullYear() - 23}-01-01`,
+        // "first_air_date.gte": `${new Date().getFullYear() - 23}-01-01`,
       },
     },
   ],
