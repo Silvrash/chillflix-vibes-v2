@@ -12,7 +12,7 @@ function useDynamicColumns() {
   }, [dimensions.width]);
 
   function calculateColumns() {
-    const itemWidth = 127.3;
+    const itemWidth = Platform.select({ web: 150, default: 127.3 });
     let deviceWidth = dimensions.width;
 
     if (Platform.OS === "web") {

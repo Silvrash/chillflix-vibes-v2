@@ -49,8 +49,6 @@ export default function ParallaxScrollView<ItemT>({
   const dimensions = useWindowDimensions();
   const deviceHeight = dimensions.height;
   const headerRef = useAnimatedRef<Animated.View>();
-  const [headerHeight, setHeaderHeight] = useState(0);
-
   const HEADER_HEIGHT = useMemo(() => deviceHeight * Platform.select({ native: 0.4, default: 0.5 }), [deviceHeight]);
 
   const backgroundColor = useThemeColor("background");
@@ -72,7 +70,7 @@ export default function ParallaxScrollView<ItemT>({
           translateY: interpolate(
             scrollOffset.value,
             [-HEADER_HEIGHT, 0, HEADER_HEIGHT],
-            [-HEADER_HEIGHT / 2, 0, HEADER_HEIGHT * 0.75]
+            [-HEADER_HEIGHT / 2, 0, HEADER_HEIGHT * 0.75],
           ),
         },
         {
@@ -117,12 +115,7 @@ export default function ParallaxScrollView<ItemT>({
 
   const renderHeader = useCallback(() => {
     return (
-      <Animated.View
-        style={[styles.header, headerAnimatedStyle]}
-        onLayout={(event) => {
-          setHeaderHeight(event.nativeEvent.layout.height);
-        }}
-      >
+      <Animated.View style={[styles.header, headerAnimatedStyle]}>
         {headerImage}
         {!!backEnabled && (
           <TouchableOpacity

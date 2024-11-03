@@ -10,8 +10,10 @@
     "format": "prettier --write \"**/*.ts\" \"**/*.tsx\"",
     "prepare": "husky",
     "web": "expo start --web",
+    "web:build": "expo export -p web",
     "test": "jest --watchAll",
     "schema": "ts-node api/generate-api.ts --schema api/api.schema --out api/tmdb.ts",
+    "update": "eas update",
     "lint": "expo lint"
   },
   "jest": {

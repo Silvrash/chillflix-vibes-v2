@@ -3,6 +3,7 @@ import React from "react";
 
 import { Colors } from "@/constants/Colors";
 import { Entypo, Ionicons } from "@expo/vector-icons";
+import { Platform } from "react-native";
 
 export default function TabLayout() {
   return (
@@ -11,6 +12,9 @@ export default function TabLayout() {
       screenOptions={{
         tabBarActiveTintColor: Colors["dark"].tint,
         headerShown: false,
+        tabBarStyle: {
+          marginVertical: Platform.select({ web: 10 }),
+        },
       }}
     >
       <Tabs.Screen

@@ -22,7 +22,7 @@ const TrendingItemView = ({ item, onPress }: TrendingItemProps) => {
       <ImageBackground
         source={{ uri: getTMDBImageUrl(item.backdrop_path, Platform.select({ native: "w780", default: "original" })) }}
         style={[styles.container, { paddingTop: safeAreaInset.top }]}
-        imageStyle={{ aspectRatio: 16 / 9 }}
+        // imageStyle={{ aspectRatio: 16 / 9 }}
         contentFit="cover"
         contentPosition={"center"}
       >

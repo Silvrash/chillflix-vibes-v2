@@ -44,7 +44,7 @@ const Trending = ({ mediaType, animeOnly }: TrendingProps) => {
 
   return (
     <ThemedView style={{ flex: 1 }}>
-      <ThemedView style={{ flex: 1, justifyContent: "center" }}>
+      <ThemedView style={{ flex: 1, justifyContent: "center", position: 'relative'}}>
         <ConditionRenderComponent renderIf={isLoading}>
           <ActivityIndicator size={"large"} />
         </ConditionRenderComponent>
