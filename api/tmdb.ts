@@ -1,4 +1,4 @@
-import { getQuery, getInfiniteQuery, getLazyQuery, postMutation, putMutation, patchMutation, deleteMutation } from "./api";
+import { getInfiniteQuery, getLazyQuery, getQuery } from "./hooks";
 
 export interface AuthenticationResult {
   success: boolean;

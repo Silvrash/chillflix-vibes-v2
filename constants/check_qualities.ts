@@ -1,4 +1,4 @@
-import { Maybe } from "@/api/api";
+import { Maybe } from "@/api/hooks";
 import { differenceInMonths } from "date-fns";
 
 interface ResponseData {
