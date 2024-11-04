@@ -17,11 +17,17 @@ import DropDownPicker from "react-native-dropdown-picker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const Player = () => {
-  const { id, type } = useLocalSearchParams<{ id: string; type: MediaType }>();
+  const { id, type, fullScreen, ...tvParams } = useLocalSearchParams<{
+    id: string;
+    type: MediaType;
+    season?: string;
+    episode?: string;
+    fullScreen?: string;
+  }>();
   const [seasonOpen, setSeasonOpen] = useState(false);
   const [episodesOpen, setEpisodesOpen] = useState(false);
-  const [seasonValue, setSeasonValue] = useState(1);
-  const [episodeValue, setEpisodeValue] = useState(1);
+  const [seasonValue, setSeasonValue] = useState(parseInt(tvParams.season ?? "1"));
+  const [episodeValue, setEpisodeValue] = useState(parseInt(tvParams.episode ?? "1"));
   const seasonDetails = useQuery(
     getSeasonDetailsQuery({
       enabled: type === MediaType.tv,
@@ -41,6 +47,18 @@ const Player = () => {
   if (!id || !type) return <Redirect href="/(media)/movies" />;
 
   function getVideoUrl() {
+    const WEB_BASE_URL = "http://localhost:8082";
+
+    if (Platform.OS !== "web") {
+      switch (type) {
+        case MediaType.movie:
+          return `${WEB_BASE_URL}/player?fullScreen=1&id=${id}&type=movie`;
+        case MediaType.tv:
+        default:
+          return `${WEB_BASE_URL}/player?fullScreen=1&id=${id}&type=tv&season=${seasonValue}&episode=${episodeValue}`;
+      }
+    }
+
     const vidSrc = new VidSrcMe();
     switch (type) {
       case MediaType.movie:
@@ -70,6 +88,8 @@ const Player = () => {
   const releaseYear = movie.data?.release_date?.split("-")[0] ?? tv.data?.first_air_date?.split("-")[0];
   const totalSeasons = tv.data?.number_of_seasons ?? 0;
   const episode = seasonDetails.data?.episodes?.find((episode) => episode.episode_number === episodeValue);
+
+  if (!!fullScreen) return <PlayerView link={getVideoUrl()} />;
 
   return (
     <View style={[styles.container, { paddingTop: safeAreaInsets.top + Platform.select({ web: 24, default: 0 }) }]}>

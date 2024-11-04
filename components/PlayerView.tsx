@@ -1,4 +1,3 @@
-import axios from "axios";
 import React from "react";
 import { useWindowDimensions, View } from "react-native";
 import WebView from "react-native-webview";
@@ -10,6 +9,7 @@ interface PlayerViewProps {
 
 const PlayerView = ({ link }: PlayerViewProps) => {
   const dimensions = useWindowDimensions();
+  console.log("link", link);
   // const [mediaURL, setMediaURL] = React.useState<string>(link);
 
   // useEffect(() => {
@@ -54,24 +54,24 @@ const PlayerView = ({ link }: PlayerViewProps) => {
         allowsInlineMediaPlayback
         domStorageEnabled
         setSupportMultipleWindows={false}
-        onShouldStartLoadWithRequest={(request) => {
-          console.log("request", request.url);
+        // onShouldStartLoadWithRequest={(request) => {
+        //   console.log("request", request.url);
 
-          // if (request.url.includes("vidsrc") || request.url.includes('rcp') ) setMediaURL(request.url);
-          // Intercept and block popups or ad URLs based on conditions
-          // return request.url.includes("vidsrc") || request.url.includes("blank") || request.url.includes("rcp");
-          if (request.url.includes("about:blank") || request.url.includes("about:srcdoc")) {
-            return false;
-          }
-          if (request.url.includes("vidsrc") || request.url.includes("rcp")) {
-            return true;
-          }
+        //   // if (request.url.includes("vidsrc") || request.url.includes('rcp') ) setMediaURL(request.url);
+        //   // Intercept and block popups or ad URLs based on conditions
+        //   // return request.url.includes("vidsrc") || request.url.includes("blank") || request.url.includes("rcp");
+        //   if (request.url.includes("about:blank") || request.url.includes("about:srcdoc")) {
+        //     return false;
+        //   }
+        //   if (request.url.includes("vidsrc") || request.url.includes("rcp")) {
+        //     return true;
+        //   }
 
-          axios.get(request.url).catch((e) => {
-            console.log("error", e);
-          });
-          return false;
-        }}
+        //   axios.get(request.url).catch((e) => {
+        //     console.log("error", e);
+        //   });
+        //   return false;
+        // }}
         // userAgent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.90 Safari/537.36"
         source={{ uri: link! }}
         style={{ backgroundColor: Colors.dark.background, width: Math.min(dimensions.width, dimensions.height) }}

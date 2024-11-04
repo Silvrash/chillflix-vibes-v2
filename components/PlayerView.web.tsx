@@ -1,10 +1,12 @@
 import React, { useLayoutEffect, useRef } from "react";
+import { StyleSheet } from "react-native";
 
 interface PlayerViewProps {
   link: string;
+  fullScreen?: boolean;
 }
 
-const PlayerView = ({ link }: PlayerViewProps) => {
+const PlayerView = ({ link, fullScreen = true }: PlayerViewProps) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   useLayoutEffect(() => {
@@ -14,7 +16,13 @@ const PlayerView = ({ link }: PlayerViewProps) => {
   }, []);
 
   return (
-    <div className="container" style={{ maxHeight: "80%" }}>
+    <div
+      className="container"
+      style={{
+        ...styles.fullScreen,
+        maxHeight: !fullScreen ? "80%" : "100%",
+      }}
+    >
       <iframe
         ref={iframeRef}
         src={link}
@@ -29,5 +37,15 @@ const PlayerView = ({ link }: PlayerViewProps) => {
     </div>
   );
 };
+
+const styles = StyleSheet.create({
+  fullScreen: {
+    ...StyleSheet.absoluteFillObject,
+    width: "100%",
+    height: "100%",
+    position: "absolute",
+    backgroundColor: "black",
+  },
+});
 
 export default PlayerView;
