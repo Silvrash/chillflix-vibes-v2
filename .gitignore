@@ -1,16 +1,25 @@
+# dependencies
 node_modules/
-.expo/
+.pnp
+.pnp.js
+
+# next.js
+.next/
+out/
+build/
 dist/
+
+# env
+.env*.local
+
+# debug
 npm-debug.*
-*.jks
-*.p8
-*.p12
-*.key
-*.mobileprovision
+yarn-debug.*
+yarn-error.*
+
+# misc
 *.orig.*
-web-build/
-
-# macOS
 .DS_Store
-
 .vercel
+*.tsbuildinfo
+next-env.d.ts

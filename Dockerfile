@@ -1,33 +1,29 @@
-FROM node:18.17.1-alpine3.17 AS base
-# node-gyp dependencies
-RUN apk add --update python3 make g++ && rm -rf /var/cache/apk/*
-
-FROM base AS build
-ARG APP
+# --- Dependencies ---
+FROM node:20-alpine AS deps
 WORKDIR /app
-# I'm choosing to build outside docker because I need the build hash to
-# to make sure pushing to artifact registry doesn't make duplicate images.
-# this is just to save cost
-COPY ./package.json ./yarn.lock ./
+COPY package.json yarn.lock* package-lock.json* ./
+RUN \
+  if [ -f yarn.lock ]; then yarn --frozen-lockfile; \
+  elif [ -f package-lock.json ]; then npm ci; \
+  else npm install; fi
 
-# install only prod
-RUN yarn install --prod
-
+# --- Build ---
+FROM node:20-alpine AS build
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+ENV NEXT_TELEMETRY_DISABLED=1
+RUN npm run build
 
-RUN yarn web:build
-
-# use node prune to remove unused dependencies
-RUN wget https://gobinaries.com/tj/node-prune --output-document - | /bin/sh && node-prune
-
-FROM alpine:3.18.3 AS production
-ARG APP
+# --- Production ---
+FROM node:20-alpine AS production
 WORKDIR /app
-COPY --from=build /app/dist ./dist
-RUN apk add nodejs npm --no-cache
-
-RUN npm install -g serve
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+COPY --from=build /app/package.json ./package.json
+COPY --from=build /app/node_modules ./node_modules
+COPY --from=build /app/.next ./.next
+COPY --from=build /app/public ./public
 
 EXPOSE 3000
-
-CMD ["serve", "dist", "--single"]
+CMD ["npm", "start"]
