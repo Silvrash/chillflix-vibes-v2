@@ -14,11 +14,8 @@ export function Player({ src, title }: PlayerProps) {
         title={title ?? "Player"}
         className="absolute inset-0 h-full w-full border-0"
         allowFullScreen
-        allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
+        allow="autoplay; fullscreen; picture-in-picture"
         referrerPolicy="origin"
-        // Block the provider iframe from spawning pop-up/pop-under ad windows while
-        // still letting its player scripts and fullscreen work.
-        sandbox="allow-same-origin allow-scripts allow-forms allow-presentation allow-orientation-lock"
       />
     </div>
   );
