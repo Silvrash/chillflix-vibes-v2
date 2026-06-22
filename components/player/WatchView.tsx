@@ -2,9 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
-import Link from "next/link";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { ArrowLeft, CalendarDays, ChevronLeft, ChevronRight, Clock, Play, Star } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, Clock, Play, Star } from "lucide-react";
 import { Player } from "./Player";
 import { MediaRail } from "@/components/media/MediaRail";
 import { Select } from "@/components/ui/Select";
@@ -129,48 +128,44 @@ export function WatchView({ id, type, initialSeason, initialEpisode }: WatchView
 
   return (
     <div className="mx-auto max-w-[1700px] px-4 py-6 sm:px-6 lg:px-10">
-      <Link
-        href={`/media/${type}/${id}`}
-        className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted transition-colors hover:text-white"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Back to details
-      </Link>
-
       <div className={cn("grid gap-6", isTv && "lg:grid-cols-[minmax(0,1fr)_360px] xl:grid-cols-[minmax(0,1fr)_420px]")}>
         {/* Main column: player + controls + info. For movies it fills the width
             but is capped by viewport height so the 16:9 player never overflows. */}
         <div className={cn("min-w-0", !isTv && "mx-auto w-full max-w-[calc(72vh*16/9)]")}>
-          <Player src={src} title={title} />
+          {/* On lg, the player + info sticks so the episode list scrolls with the
+              page — a single page scrollbar instead of a nested second one. */}
+          <div className={cn(isTv && "lg:sticky lg:top-20 lg:self-start")}>
+            <Player src={src} title={title} />
 
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-            <ServerTabs value={serverIndex} onChange={setServerIndex} />
-            {isTv && (
-              <div className="flex items-center gap-2">
-                <EpisodeNavButton direction="prev" disabled={atFirstEpisode} onClick={goToPreviousEpisode} />
-                <span className="min-w-[72px] text-center text-sm font-semibold text-accent">
-                  S{pad2(season)} · E{pad2(episode)}
-                </span>
-                <EpisodeNavButton direction="next" disabled={atLastEpisode} onClick={goToNextEpisode} />
-              </div>
-            )}
-          </div>
-
-          <h1 className="mt-5 text-2xl font-bold sm:text-3xl">{title ?? "Loading…"}</h1>
-          <MetaRow year={year} rating={rating} runtime={runtime} genres={genres} totalSeasons={isTv ? totalSeasons : 0} />
-
-          {isTv && currentEpisode && (
-            <div className="mt-4 rounded-xl border border-white/5 bg-surface/50 p-4">
-              <h2 className="text-base font-semibold">
-                E{currentEpisode.episode_number} · {currentEpisode.name}
-              </h2>
-              {currentEpisode.overview && (
-                <p className="mt-1.5 text-sm leading-relaxed text-white/70">{currentEpisode.overview}</p>
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+              <ServerTabs value={serverIndex} onChange={setServerIndex} />
+              {isTv && (
+                <div className="flex items-center gap-2">
+                  <EpisodeNavButton direction="prev" disabled={atFirstEpisode} onClick={goToPreviousEpisode} />
+                  <span className="min-w-[72px] text-center text-sm font-semibold text-accent">
+                    S{pad2(season)} · E{pad2(episode)}
+                  </span>
+                  <EpisodeNavButton direction="next" disabled={atLastEpisode} onClick={goToNextEpisode} />
+                </div>
               )}
             </div>
-          )}
 
-          {overview && <p className="mt-4 max-w-3xl text-sm leading-relaxed text-white/70">{overview}</p>}
+            <h1 className="mt-5 text-2xl font-bold sm:text-3xl">{title ?? "Loading…"}</h1>
+            <MetaRow year={year} rating={rating} runtime={runtime} genres={genres} totalSeasons={isTv ? totalSeasons : 0} />
+
+            {isTv && currentEpisode && (
+              <div className="mt-4 rounded-xl border border-white/5 bg-surface/50 p-4">
+                <h2 className="text-base font-semibold">
+                  E{currentEpisode.episode_number} · {currentEpisode.name}
+                </h2>
+                {currentEpisode.overview && (
+                  <p className="mt-1.5 text-sm leading-relaxed text-white/70">{currentEpisode.overview}</p>
+                )}
+              </div>
+            )}
+
+            {overview && <p className="mt-4 max-w-3xl text-sm leading-relaxed text-white/70">{overview}</p>}
+          </div>
         </div>
 
         {/* Episodes sidebar (TV only) */}
@@ -341,7 +336,7 @@ function EpisodeList({
   }
 
   return (
-    <div ref={listRef} className="space-y-2 lg:max-h-[68vh] lg:overflow-y-auto lg:pr-1">
+    <div ref={listRef} className="space-y-2">
       {episodes.map((ep) => {
         const active = ep.episode_number === current;
         const still = getTMDBImageUrl(ep.still_path, "w300");
