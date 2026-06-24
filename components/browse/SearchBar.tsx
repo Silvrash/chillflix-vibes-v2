@@ -7,10 +7,11 @@ import debounce from "debounce";
 interface SearchBarProps {
   placeholder?: string;
   onSearch: (query: string) => void;
+  initialValue?: string;
 }
 
-export function SearchBar({ placeholder = "Search", onSearch }: SearchBarProps) {
-  const [value, setValue] = useState("");
+export function SearchBar({ placeholder = "Search", onSearch, initialValue = "" }: SearchBarProps) {
+  const [value, setValue] = useState(initialValue);
 
   const debouncedSearch = useMemo(() => debounce((query: string) => onSearch(query), 400), [onSearch]);
 

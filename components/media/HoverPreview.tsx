@@ -181,7 +181,7 @@ function PreviewCard({ item, trigger }: { item: Movie | TVShow; trigger: Trigger
         )}
 
         {item.overview ? (
-          <p className="line-clamp-3 text-xs leading-relaxed text-white/70">{item.overview}</p>
+          <p className="text-xs leading-relaxed text-white/70">{item.overview}</p>
         ) : (
           <p className="text-xs italic text-muted">No description available.</p>
         )}

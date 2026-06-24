@@ -3,6 +3,7 @@ import { BrowsePage } from "./BrowsePage";
 import { makeQueryClient } from "@/lib/tmdb/query-client";
 import { discover, getGenres, getTrending } from "@/lib/tmdb/server";
 import { filterStateToParams, presetToFilterState } from "@/lib/tmdb/filters";
+import { loadFilters, valuesToFilterState } from "@/lib/tmdb/filter-params";
 import type { Preset } from "@/lib/presets";
 import {
   GetDiscoverMoviesQueryKey,
@@ -18,20 +19,20 @@ interface BrowsePageServerProps {
   mediaType: MediaType;
   presets: Preset[];
   animeOnly?: boolean;
+  searchParams: Record<string, string | string[] | undefined>;
 }
 
 /**
- * Server Component that prefetches the hero (trending) + first discover page on
- * the server (from the cached data layer) and dehydrates them into the React
- * Query cache. The client <BrowsePage> then renders that data during SSR — no
- * spinner, no client waterfall — and stays interactive for filters/scroll.
- *
- * The query keys here MUST match the client hooks; both derive their discover
- * variables from the same FilterState via `filterStateToParams`.
+ * Server Component that resolves the filters from the URL, prefetches the hero
+ * (trending) + matching discover page on the server (from the cached data
+ * layer), and dehydrates them into the React Query cache. The client
+ * <BrowsePage> reads the same URL via nuqs, so SSR and the client agree and the
+ * grid renders without a spinner — even on a shared/returned filtered URL.
  */
-export async function BrowsePageServer({ mediaType, presets, animeOnly }: BrowsePageServerProps) {
+export async function BrowsePageServer({ mediaType, presets, animeOnly, searchParams }: BrowsePageServerProps) {
   const isMovie = mediaType === MediaType.movie;
-  const initialFilters = presetToFilterState(presets[0]);
+  const defaultFilters = presetToFilterState(presets[0]);
+  const initialFilters = valuesToFilterState(loadFilters(searchParams), defaultFilters);
   const discoverVariables = filterStateToParams(initialFilters, mediaType, animeOnly);
 
   const trendingKey = isMovie ? GetTrendingMoviesQueryKey : GetTrendingTVShowsQueryKey;

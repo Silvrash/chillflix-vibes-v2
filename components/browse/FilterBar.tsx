@@ -13,6 +13,7 @@ import {
   RATING_OPTIONS,
   YEAR_OPTIONS,
   emptyFilters,
+  filterStateToParams,
   hasActiveFilters,
   presetToFilterState,
   sortOptionsFor,
@@ -35,22 +36,23 @@ interface FilterBarProps {
 const CUSTOM_LABEL = "Custom filters";
 
 export function FilterBar({ mediaType, animeOnly, genres, presets, filters, onChange }: FilterBarProps) {
-  const [presetLabel, setPresetLabel] = useState(presets[0]?.name ?? CUSTOM_LABEL);
-
   // Genre 16 (Animation) is always applied on the anime page, so hide it from the picker.
   const genreOptions = useMemo(() => (animeOnly ? genres.filter((g) => g.id !== 16) : genres), [genres, animeOnly]);
   const genreName = useMemo(() => new Map(genres.map((g) => [g.id, g.name])), [genres]);
 
-  function apply(next: FilterState, fromPreset?: string) {
-    setPresetLabel(fromPreset ?? CUSTOM_LABEL);
-    onChange(next);
-  }
+  // The "Quick picks" label reflects the active filters: a preset name when they
+  // match one (e.g. straight after picking it), otherwise "Custom filters".
+  const presetLabel = useMemo(() => {
+    const current = filterStateToParams(filters, mediaType, animeOnly);
+    const match = presets.find((p) => sameParams(filterStateToParams(presetToFilterState(p), mediaType, animeOnly), current));
+    return match?.name ?? CUSTOM_LABEL;
+  }, [filters, presets, mediaType, animeOnly]);
 
-  const update = (patch: Partial<FilterState>) => apply({ ...filters, ...patch });
+  const update = (patch: Partial<FilterState>) => onChange({ ...filters, ...patch });
 
   function selectPreset(name: string) {
     const preset = presets.find((p) => p.name === name);
-    if (preset) apply(presetToFilterState(preset), name);
+    if (preset) onChange(presetToFilterState(preset));
   }
 
   function toggleGenre(id: number) {
@@ -73,7 +75,7 @@ export function FilterBar({ mediaType, animeOnly, genres, presets, filters, onCh
         {showReset && (
           <button
             type="button"
-            onClick={() => apply(emptyFilters())}
+            onClick={() => onChange(emptyFilters())}
             className="flex items-center gap-1.5 self-start rounded-lg border border-white/10 bg-surface px-3 py-2.5 text-sm font-medium text-muted transition-colors hover:border-white/20 hover:text-white sm:self-auto"
           >
             <RotateCcw className="h-3.5 w-3.5" />
@@ -160,6 +162,12 @@ export function FilterBar({ mediaType, animeOnly, genres, presets, filters, onCh
       )}
     </div>
   );
+}
+
+function sameParams(a: Record<string, string | number | boolean>, b: Record<string, string | number | boolean>): boolean {
+  const keys = Object.keys(a);
+  if (keys.length !== Object.keys(b).length) return false;
+  return keys.every((key) => String(a[key]) === String(b[key]));
 }
 
 function yearChipLabel(min?: number, max?: number): string {

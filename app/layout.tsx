@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { Navbar } from "@/components/layout/Navbar";
 import { Providers } from "./providers";
 import "./globals.css";
@@ -15,10 +16,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={inter.variable}>
       <body className="bg-background font-sans text-white antialiased">
-        <Providers>
-          <Navbar />
-          <main className="min-h-screen">{children}</main>
-        </Providers>
+        <NuqsAdapter>
+          <Providers>
+            <Navbar />
+            <main className="min-h-screen">{children}</main>
+          </Providers>
+        </NuqsAdapter>
       </body>
     </html>
   );

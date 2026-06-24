@@ -1,12 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
+import { useQueryStates } from "nuqs";
 import { Hero } from "./Hero";
 import { FilterBar, type Genre } from "./FilterBar";
 import { SearchBar } from "./SearchBar";
 import { MediaGrid } from "@/components/media/MediaGrid";
 import { filterStateToParams, type FilterState } from "@/lib/tmdb/filters";
+import { filterParsers, filterStateToValues, valuesToFilterState } from "@/lib/tmdb/filter-params";
 import type { Preset } from "@/lib/presets";
 import {
   MediaType,
@@ -33,11 +35,18 @@ const infinitePageParams = {
 };
 
 export function BrowsePage({ mediaType, presets, genres, initialFilters, animeOnly }: BrowsePageProps) {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [filters, setFilters] = useState<FilterState>(initialFilters);
+  // Filters + search live in the URL (nuqs), so they survive navigating into a
+  // title and coming back, and are shareable. `initialFilters` is the server's
+  // URL-resolved fallback used when the query string carries no filters.
+  const [values, setValues] = useQueryStates(filterParsers);
+  const q = values.q;
+
+  const filters = useMemo(() => valuesToFilterState(values, initialFilters), [values, initialFilters]);
+  const setFilters = useCallback((next: FilterState) => void setValues(filterStateToValues(next)), [setValues]);
+  const setQuery = useCallback((next: string) => void setValues({ q: next || null }), [setValues]);
 
   const isMovie = mediaType === MediaType.movie;
-  const searching = searchQuery.trim().length > 0;
+  const searching = q.trim().length > 0;
 
   // Same builder the server used to prefetch, so the first page hydrates.
   const discoverVariables = useMemo(() => filterStateToParams(filters, mediaType, animeOnly), [filters, mediaType, animeOnly]);
@@ -55,12 +64,12 @@ export function BrowsePage({ mediaType, presets, genres, initialFilters, animeOn
     isMovie
       ? getSearchMoviesInfiniteQuery({
           enabled: searching,
-          variables: { query: searchQuery, include_adult: false } as any,
+          variables: { query: q, include_adult: false } as any,
           ...infinitePageParams,
         })
       : getSearchTVSeriesInfiniteQuery({
           enabled: searching,
-          variables: { query: searchQuery, include_adult: false } as any,
+          variables: { query: q, include_adult: false } as any,
           ...infinitePageParams,
         })
   ) as ReturnType<typeof getSearchMoviesInfiniteQuery>;
@@ -82,13 +91,14 @@ export function BrowsePage({ mediaType, presets, genres, initialFilters, animeOn
             <h1 className="text-xl font-bold">{animeOnly ? "Anime" : isMovie ? "Movies" : "TV Shows"}</h1>
             <SearchBar
               placeholder={`Search ${animeOnly ? "Anime" : isMovie ? "Movies" : "TV Shows"}`}
-              onSearch={setSearchQuery}
+              onSearch={setQuery}
+              initialValue={q}
             />
           </div>
 
           {searching ? (
             <h2 className="text-lg font-semibold">
-              Results for <span className="text-primary">&ldquo;{searchQuery}&rdquo;</span>
+              Results for <span className="text-primary">&ldquo;{q}&rdquo;</span>
             </h2>
           ) : (
             <FilterBar
