@@ -1,17 +1,20 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, Calendar, Clock, Play, Star } from "lucide-react";
+import { ArrowLeft, Calendar, Clock, Play, Star, X, Youtube } from "lucide-react";
 import { useMediaTypeQueries } from "@/lib/tmdb/media-queries";
 import { getTMDBImageUrl } from "@/lib/tmdb/images";
 import { formatDate, normalizeRating } from "@/lib/utils";
-import { MediaType, type Movie, type TVShow } from "@/lib/tmdb/queries";
+import { MediaType, type Movie, type TVShow, type Video } from "@/lib/tmdb/queries";
 import { MediaRail } from "./MediaRail";
 import { Spinner } from "@/components/ui/Spinner";
 
 export function MediaDetail({ id, type }: { id: number; type: MediaType }) {
   const { query, recommendedQuery, similarQuery } = useMediaTypeQueries(id, type);
+  const [trailerOpen, setTrailerOpen] = useState(false);
 
   if (query.isLoading || !query.data) {
     return (
@@ -35,6 +38,8 @@ export function MediaDetail({ id, type }: { id: number; type: MediaType }) {
 
   const recommended = ((recommendedQuery.data?.pages ?? []) as any[]).flatMap((page) => page.results) as (Movie | TVShow)[];
   const similar = ((similarQuery.data?.pages ?? []) as any[]).flatMap((page) => page.results) as (Movie | TVShow)[];
+
+  const trailer = pickTrailer(data.videos?.results);
 
   return (
     <div className="pb-16">
@@ -106,13 +111,25 @@ export function MediaDetail({ id, type }: { id: number; type: MediaType }) {
 
             <p className="mt-4 max-w-3xl text-sm leading-relaxed text-white/80 sm:text-base">{data.overview}</p>
 
-            <Link
-              href={`/watch/${type}/${id}`}
-              className="mt-6 inline-flex items-center gap-2 rounded-lg bg-primary-dark px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-primary-dark/90"
-            >
-              <Play className="h-4 w-4 fill-white" />
-              Play Now
-            </Link>
+            <div className="mt-6 flex flex-wrap items-center gap-2.5">
+              <Link
+                href={`/watch/${type}/${id}`}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-primary-dark px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-dark/90"
+              >
+                <Play className="h-3.5 w-3.5 fill-white" />
+                Play Now
+              </Link>
+              {trailer && (
+                <button
+                  type="button"
+                  onClick={() => setTrailerOpen(true)}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-white/5 px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-white/10"
+                >
+                  <Youtube className="h-3.5 w-3.5" />
+                  Trailer
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
@@ -125,6 +142,63 @@ export function MediaDetail({ id, type }: { id: number; type: MediaType }) {
           {data.credits?.crew?.length ? <MediaRail title="Crew" items={data.credits.crew} /> : null}
         </div>
       </div>
+
+      {trailer && trailerOpen && <TrailerModal videoKey={trailer.key} title={title} onClose={() => setTrailerOpen(false)} />}
     </div>
+  );
+}
+
+/** Pick the best playable trailer: an official YouTube trailer, else any trailer/teaser. */
+function pickTrailer(videos?: Video[]): Video | undefined {
+  const youtube = (videos ?? []).filter((v) => v.site === "YouTube" && v.key);
+  return (
+    youtube.find((v) => v.type === "Trailer" && /official/i.test(v.name)) ??
+    youtube.find((v) => v.type === "Trailer") ??
+    youtube.find((v) => v.type === "Teaser") ??
+    youtube[0]
+  );
+}
+
+function TrailerModal({ videoKey, title, onClose }: { videoKey: string; title: string; onClose: () => void }) {
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKey);
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [onClose]);
+
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
+    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+      <div className="absolute inset-0 animate-fade-in bg-black/80" onClick={onClose} />
+      <div className="relative w-full max-w-4xl animate-pop-in">
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close trailer"
+          className="absolute -top-9 right-0 flex items-center gap-1 text-sm font-medium text-white/80 transition-colors hover:text-white"
+        >
+          <X className="h-4 w-4" />
+          Close
+        </button>
+        <div className="relative aspect-video w-full overflow-hidden rounded-xl bg-black ring-1 ring-white/10">
+          <iframe
+            src={`https://www.youtube.com/embed/${videoKey}?autoplay=1&rel=0`}
+            title={`${title} — Trailer`}
+            className="absolute inset-0 h-full w-full border-0"
+            allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
+            allowFullScreen
+          />
+        </div>
+      </div>
+    </div>,
+    document.body,
   );
 }

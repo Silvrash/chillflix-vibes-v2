@@ -74,10 +74,10 @@ export function FilterBar({ mediaType, animeOnly, genres, presets, filters, onCh
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="flex w-full items-center justify-between gap-2 rounded-xl border border-white/10 bg-surface px-4 py-3 text-sm font-semibold transition-colors hover:border-white/20 sm:w-auto sm:justify-start sm:rounded-lg sm:py-2.5"
+          className="flex w-full items-center justify-between gap-2 rounded-xl border border-white/10 bg-surface px-4 py-3 text-sm font-semibold transition-colors hover:border-white/20 sm:w-auto sm:justify-start sm:rounded-lg sm:px-5 sm:py-2"
         >
-          <span className="flex items-center gap-2">
-            <SlidersHorizontal className="h-4 w-4 text-primary" />
+          <span className="flex items-center gap-1.5">
+            <SlidersHorizontal className="h-3.5 w-3.5 text-primary" />
             Filters
             {activeCount > 0 && (
               <span className="rounded-full bg-primary-dark px-1.5 py-0.5 text-[11px] font-semibold text-white">
