@@ -26,10 +26,15 @@ const config: Config = {
           from: { opacity: "0", transform: "scale(0.96) translateY(4px)" },
           to: { opacity: "1", transform: "scale(1) translateY(0)" },
         },
+        "slide-up": {
+          from: { transform: "translateY(100%)" },
+          to: { transform: "translateY(0)" },
+        },
       },
       animation: {
         "fade-in": "fade-in 0.4s ease-out",
         "pop-in": "pop-in 0.16s ease-out",
+        "slide-up": "slide-up 0.25s ease-out",
       },
     },
   },
