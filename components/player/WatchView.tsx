@@ -3,13 +3,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, Clock, Play, Star } from "lucide-react";
+import { CalendarDays, Check, CheckCircle2, ChevronLeft, ChevronRight, Clock, Play, Star } from "lucide-react";
 import { Player } from "./Player";
 import { MediaRail } from "@/components/media/MediaRail";
 import { Select } from "@/components/ui/Select";
 import { Spinner } from "@/components/ui/Spinner";
 import { STREAM_SERVERS } from "@/lib/streaming/vidsrc";
-import { getLastWatched, setLastWatched } from "@/lib/storage";
+import { getLastWatched, getPlaybackPrefs, setLastWatched, setPlaybackPrefs } from "@/lib/storage";
 import { getTMDBImageUrl } from "@/lib/tmdb/images";
 import { cn, getYear, normalizeRating, pad2 } from "@/lib/utils";
 import {
@@ -39,6 +39,9 @@ export function WatchView({ id, type, initialSeason, initialEpisode }: WatchView
   const [season, setSeason] = useState(initialSeason);
   const [episode, setEpisode] = useState(initialEpisode);
   const [pendingEpisode, setPendingEpisode] = useState<number | "last" | null>(null);
+  const [autoplay, setAutoplay] = useState(true);
+  const [playNext, setPlayNext] = useState(true);
+  const [prefsLoaded, setPrefsLoaded] = useState(false);
 
   // Restore the last-watched season/episode from localStorage on mount.
   useEffect(() => {
@@ -48,6 +51,25 @@ export function WatchView({ id, type, initialSeason, initialEpisode }: WatchView
     if (last.episode) setEpisode(last.episode);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Load saved playback preferences (autoplay / auto-play-next) on mount. The
+  // player waits for this so its first load already reflects the saved autoplay
+  // choice (localStorage isn't available during SSR).
+  useEffect(() => {
+    const prefs = getPlaybackPrefs();
+    setAutoplay(prefs.autoplay);
+    setPlayNext(prefs.playNext);
+    setPrefsLoaded(true);
+  }, []);
+
+  function updateAutoplay(value: boolean) {
+    setAutoplay(value);
+    setPlaybackPrefs({ autoplay: value, playNext });
+  }
+  function updatePlayNext(value: boolean) {
+    setPlayNext(value);
+    setPlaybackPrefs({ autoplay, playNext: value });
+  }
 
   useEffect(() => {
     if (isTv) setLastWatched(type, id, season, episode);
@@ -124,10 +146,36 @@ export function WatchView({ id, type, initialSeason, initialEpisode }: WatchView
     }
   }
 
+  // Auto-advance: when the vidlink player reports the episode ended, play the
+  // next one. A ref keeps the handler on the latest goToNextEpisode so the
+  // listener can subscribe once without going stale.
+  const goToNextEpisodeRef = useRef(goToNextEpisode);
+  useEffect(() => {
+    goToNextEpisodeRef.current = goToNextEpisode;
+  });
+  useEffect(() => {
+    if (!isTv || !playNext) return;
+    function onPlayerMessage(event: MessageEvent) {
+      if (event.origin !== "https://vidlink.pro") return;
+      const payload = event.data;
+      if (payload?.type !== "PLAYER_EVENT" || payload.data?.event !== "ended") return;
+      // Only advance if the episode that ended is the one currently playing —
+      // ignores duplicate or stale "ended" events fired after we've moved on.
+      if (parseInt(payload.data.season, 10) !== season || parseInt(payload.data.episode, 10) !== episode) return;
+      goToNextEpisodeRef.current();
+    }
+    window.addEventListener("message", onPlayerMessage);
+    return () => window.removeEventListener("message", onPlayerMessage);
+  }, [isTv, playNext, season, episode]);
+
   const server = STREAM_SERVERS[serverIndex];
   const src = useMemo(
-    () => (isTv ? server.getEpisodeLink(id, season, episode) : server.getMovieLink(id)),
-    [isTv, server, id, season, episode],
+    () => (isTv ? server.getEpisodeLink(id, season, episode, { autoplay }) : server.getMovieLink(id, { autoplay })),
+    // `autoplay` is read but intentionally excluded: toggling it should apply to the
+    // next load, not reload (and restart) the current episode. `prefsLoaded` is
+    // included so the URL picks up the saved autoplay choice once on first load.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [isTv, server, id, season, episode, prefsLoaded],
   );
 
   const recs = (((isTv ? tvRecs.data : movieRecs.data)?.pages ?? []) as { results: (Movie | TVShow)[] }[]).flatMap(
@@ -143,7 +191,11 @@ export function WatchView({ id, type, initialSeason, initialEpisode }: WatchView
           {/* On lg, the player + info sticks so the episode list scrolls with the
               page — a single page scrollbar instead of a nested second one. */}
           <div className={cn(isTv && "lg:sticky lg:top-20 lg:self-start")}>
-            <Player src={src} title={title} />
+            {prefsLoaded ? (
+              <Player src={src} title={title} />
+            ) : (
+              <div className="aspect-video w-full rounded-xl bg-black ring-1 ring-white/10" />
+            )}
 
             <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
               <ServerTabs value={serverIndex} onChange={setServerIndex} />
@@ -156,6 +208,11 @@ export function WatchView({ id, type, initialSeason, initialEpisode }: WatchView
                   <EpisodeNavButton direction="next" disabled={atLastEpisode} onClick={goToNextEpisode} />
                 </div>
               )}
+            </div>
+
+            <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2">
+              <PlaybackToggle label="Autoplay" checked={autoplay} onChange={updateAutoplay} />
+              {isTv && <PlaybackToggle label="Auto-play next" checked={playNext} onChange={updatePlayNext} />}
             </div>
 
             <h1 className="mt-5 text-2xl font-bold sm:text-3xl">{title ?? "Loading…"}</h1>
@@ -237,6 +294,29 @@ function ServerTabs({ value, onChange }: { value: number; onChange: (index: numb
         </button>
       ))}
     </div>
+  );
+}
+
+function PlaybackToggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (value: boolean) => void }) {
+  return (
+    <button
+      type="button"
+      role="checkbox"
+      aria-checked={checked}
+      aria-label={label}
+      onClick={() => onChange(!checked)}
+      className="group flex items-center gap-2 text-sm transition-colors"
+    >
+      <span
+        className={cn(
+          "flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded border transition-colors",
+          checked ? "border-primary-dark bg-primary-dark text-white" : "border-white/25 bg-white/5 group-hover:border-white/40",
+        )}
+      >
+        {checked && <Check className="h-3 w-3" strokeWidth={3.5} />}
+      </span>
+      <span className={cn("font-medium", checked ? "text-white" : "text-muted group-hover:text-white")}>{label}</span>
+    </button>
   );
 }
 
