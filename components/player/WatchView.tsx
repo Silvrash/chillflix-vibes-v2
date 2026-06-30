@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { CalendarDays, ChevronLeft, ChevronRight, Clock, Play, Star } from "lucide-react";
+import { CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, Clock, Play, Star } from "lucide-react";
 import { Player } from "./Player";
 import { MediaRail } from "@/components/media/MediaRail";
 import { Select } from "@/components/ui/Select";
@@ -22,6 +22,7 @@ import {
   type Episode,
   type Genre,
   type Movie,
+  type TVDetails,
   type TVShow,
 } from "@/lib/tmdb/queries";
 
@@ -88,6 +89,13 @@ export function WatchView({ id, type, initialSeason, initialEpisode }: WatchView
   const lastEpisodeNumber = episodes.length > 0 ? episodes[episodes.length - 1].episode_number : 1;
   const atFirstEpisode = season <= 1 && episode <= 1;
   const atLastEpisode = totalSeasons > 0 && season >= totalSeasons && episodes.length > 0 && episode >= lastEpisodeNumber;
+
+  // Season-completion / next-season status (shown beneath the episode list).
+  const lastEpisode = episodes[episodes.length - 1];
+  const seasonComplete = !!lastEpisode?.air_date && !episodeAirInfo(lastEpisode.air_date).upcoming;
+  const isLastSeason = totalSeasons > 0 && season >= totalSeasons;
+  const showEnded = !!tv.data?.status && /ended|cancell?ed/i.test(tv.data.status);
+  const nextSeason = getNextSeasonInfo(tv.data, season);
 
   // Stepping back across a season boundary lands on that season's last episode once it loads.
   useEffect(() => {
@@ -189,6 +197,16 @@ export function WatchView({ id, type, initialSeason, initialEpisode }: WatchView
               )}
             </div>
             <EpisodeList episodes={episodes} loading={seasonDetails.isLoading} current={episode} onSelect={setEpisode} />
+            {!seasonDetails.isLoading && (
+              <SeasonStatusFooter
+                complete={seasonComplete}
+                seasonNumber={season}
+                isLastSeason={isLastSeason}
+                showEnded={showEnded}
+                inProduction={!!tv.data?.in_production}
+                nextSeason={nextSeason}
+              />
+            )}
           </aside>
         )}
       </div>
@@ -300,6 +318,82 @@ function EpisodeNavButton({
   );
 }
 
+/** Formats an episode's air date; `upcoming` is true only when a future date is known. */
+function episodeAirInfo(airDate?: string): { label: string | null; upcoming: boolean } {
+  if (!airDate) return { label: null, upcoming: false };
+  const date = new Date(`${airDate}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return { label: null, upcoming: false };
+  return {
+    label: date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+    upcoming: date.getTime() > Date.now(),
+  };
+}
+
+/**
+ * Find the next, not-yet-released season so we can surface its premiere date.
+ * Prefers an explicit future season in `seasons[]`; falls back to a premiere
+ * (episode 1) flagged by `next_episode_to_air`. Returns null when nothing is known.
+ */
+function getNextSeasonInfo(tv: TVDetails | undefined, currentSeason: number): { seasonNumber: number; date: string } | null {
+  if (!tv) return null;
+  const isFuture = (airDate?: string) => {
+    if (!airDate) return false;
+    const time = new Date(`${airDate}T00:00:00`).getTime();
+    return !Number.isNaN(time) && time > Date.now();
+  };
+
+  const upcoming = (tv.seasons ?? [])
+    .filter((s) => s.season_number > currentSeason && s.season_number > 0 && isFuture(s.air_date))
+    .sort((a, b) => a.season_number - b.season_number)[0];
+  if (upcoming) return { seasonNumber: upcoming.season_number, date: upcoming.air_date };
+
+  const next = tv.next_episode_to_air;
+  if (next && next.episode_number === 1 && next.season_number > currentSeason && isFuture(next.air_date)) {
+    return { seasonNumber: next.season_number, date: next.air_date };
+  }
+  return null;
+}
+
+/** Footer beneath the episode list: marks a finished season and teases the next one. */
+function SeasonStatusFooter({
+  complete,
+  seasonNumber,
+  isLastSeason,
+  showEnded,
+  inProduction,
+  nextSeason,
+}: {
+  complete: boolean;
+  seasonNumber: number;
+  isLastSeason: boolean;
+  showEnded: boolean;
+  inProduction: boolean;
+  nextSeason: { seasonNumber: number; date: string } | null;
+}) {
+  if (!complete) return null;
+  const seriesEnded = isLastSeason && showEnded;
+  const nextDate = nextSeason ? episodeAirInfo(nextSeason.date).label : null;
+
+  return (
+    <div className="mt-3 rounded-xl border border-white/5 bg-surface/40 px-3 py-3 text-center">
+      <p className="flex items-center justify-center gap-1.5 text-sm font-semibold text-white/85">
+        <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+        {seriesEnded ? "Series finale" : `Season ${seasonNumber} complete`}
+      </p>
+      {nextSeason && nextDate ? (
+        <p className="mt-1.5 flex items-center justify-center gap-1.5 text-xs font-medium text-primary">
+          <CalendarDays className="h-3.5 w-3.5" />
+          Season {nextSeason.seasonNumber} expected {nextDate}
+        </p>
+      ) : seriesEnded ? (
+        <p className="mt-1 text-xs text-muted">This series has ended.</p>
+      ) : isLastSeason && inProduction ? (
+        <p className="mt-1 text-xs text-muted">Next season in production — date to be announced.</p>
+      ) : null}
+    </div>
+  );
+}
+
 function EpisodeList({
   episodes,
   loading,
@@ -337,18 +431,22 @@ function EpisodeList({
 
   return (
     <div ref={listRef} className="space-y-2">
-      {episodes.map((ep) => {
+      {episodes.map((ep, index) => {
         const active = ep.episode_number === current;
         const still = getTMDBImageUrl(ep.still_path, "w300");
+        const air = episodeAirInfo(ep.air_date);
+        const isFinale = episodes.length > 1 && index === episodes.length - 1;
         return (
           <button
             key={ep.id}
             ref={active ? activeRef : undefined}
             type="button"
             onClick={() => onSelect(ep.episode_number)}
+            disabled={air.upcoming}
             className={cn(
               "flex w-full gap-3 rounded-lg border p-2 text-left transition-colors",
               active ? "border-primary/50 bg-primary/10" : "border-transparent hover:bg-white/5",
+              air.upcoming && "cursor-default opacity-60 hover:bg-transparent",
             )}
           >
             <div className="relative aspect-video w-28 shrink-0 overflow-hidden rounded-md bg-surface-light">
@@ -364,9 +462,29 @@ function EpisodeList({
               )}
             </div>
             <div className="min-w-0 flex-1 py-0.5">
-              <span className={cn("text-xs font-semibold", active ? "text-primary" : "text-muted")}>
-                Episode {ep.episode_number}
-              </span>
+              <div className="flex items-center justify-between gap-2">
+                <span className="flex min-w-0 items-center gap-1.5">
+                  <span className={cn("text-xs font-semibold", active ? "text-primary" : "text-muted")}>
+                    Episode {ep.episode_number}
+                  </span>
+                  {isFinale && (
+                    <span className="shrink-0 rounded bg-amber-400/15 px-1.5 py-px text-[10px] font-bold uppercase tracking-wide text-amber-300">
+                      Finale
+                    </span>
+                  )}
+                </span>
+                {air.label && (
+                  <span
+                    className={cn(
+                      "flex shrink-0 items-center gap-1 text-[11px]",
+                      air.upcoming ? "font-medium text-primary" : "text-muted",
+                    )}
+                  >
+                    <CalendarDays className="h-3 w-3" />
+                    {air.upcoming ? `Airs ${air.label}` : air.label}
+                  </span>
+                )}
+              </div>
               <p className="truncate text-sm font-medium">{ep.name}</p>
               {ep.overview && <p className="mt-0.5 line-clamp-2 text-xs text-muted">{ep.overview}</p>}
             </div>
