@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { Check, ChevronDown, RotateCcw, SlidersHorizontal, X } from "lucide-react";
+import { RotateCcw, SlidersHorizontal, Sparkles, X } from "lucide-react";
 import { Select } from "@/components/ui/Select";
-import { PresetSelect } from "./PresetSelect";
 import { cn } from "@/lib/utils";
 import { MediaType } from "@/lib/tmdb/queries";
 import type { Preset } from "@/lib/presets";
@@ -74,7 +73,7 @@ export function FilterBar({ mediaType, animeOnly, genres, presets, filters, onCh
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="flex w-full items-center justify-between gap-2 rounded-xl border border-white/10 bg-surface px-4 py-3 text-sm font-semibold transition-colors hover:border-white/20 sm:w-auto sm:justify-start sm:rounded-lg sm:px-5 sm:py-2"
+          className="flex w-full items-center justify-between gap-2 rounded-2xl border border-white/10 bg-surface px-4 py-3 text-sm font-semibold transition-colors hover:border-white/20 sm:w-auto sm:justify-start sm:rounded-full sm:px-5 sm:py-2"
         >
           <span className="flex items-center gap-1.5">
             <SlidersHorizontal className="h-3.5 w-3.5 text-primary" />
@@ -92,14 +91,18 @@ export function FilterBar({ mediaType, animeOnly, genres, presets, filters, onCh
       </div>
 
       <FilterModal open={open} activeCount={activeCount} showReset={showReset} onClose={() => setOpen(false)} onReset={reset}>
-        <label className="flex w-full flex-col gap-1">
-          <span className="text-xs font-medium uppercase tracking-wide text-muted">Quick picks</span>
-          <PresetSelect options={presets.map((p) => p.name)} value={presetLabel} onChange={selectPreset} />
-        </label>
+        <Section label="Quick picks" emoji="⚡">
+          <div className="flex flex-wrap gap-2">
+            {presets.map((p) => (
+              <Pill key={p.name} active={presetLabel === p.name} onClick={() => selectPreset(p.name)}>
+                {p.name}
+              </Pill>
+            ))}
+          </div>
+        </Section>
         <FilterControls
           mediaType={mediaType}
           genreOptions={genreOptions}
-          genreName={genreName}
           filters={filters}
           update={update}
           toggleGenre={toggleGenre}
@@ -122,52 +125,61 @@ function countActiveFilters(filters: FilterState, animeOnly?: boolean): number {
 function FilterControls({
   mediaType,
   genreOptions,
-  genreName,
   filters,
   update,
   toggleGenre,
 }: {
   mediaType: MediaType;
   genreOptions: Genre[];
-  genreName: Map<number, string>;
   filters: FilterState;
   update: (patch: Partial<FilterState>) => void;
   toggleGenre: (id: number) => void;
 }) {
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-      <GenreSelect genres={genreOptions} selected={filters.genres} genreName={genreName} onToggle={toggleGenre} />
-      <Select
-        label="Sort by"
-        value={filters.sortBy}
-        options={sortOptionsFor(mediaType)}
-        onChange={(value) => update({ sortBy: value })}
-      />
-      <Select
-        label="Year from"
-        value={filters.yearMin ?? 0}
-        options={[{ label: "Any", value: 0 }, ...YEAR_OPTIONS]}
-        onChange={(value) => update({ yearMin: Number(value) || undefined })}
-      />
-      <Select
-        label="Year to"
-        value={filters.yearMax ?? 0}
-        options={[{ label: "Any", value: 0 }, ...YEAR_OPTIONS]}
-        onChange={(value) => update({ yearMax: Number(value) || undefined })}
-      />
-      <Select
-        label="Min rating"
-        value={filters.minRating ?? 0}
-        options={RATING_OPTIONS}
-        onChange={(value) => update({ minRating: Number(value) || undefined })}
-      />
-      <Select
-        label="Language"
-        value={filters.language ?? ""}
-        options={LANGUAGE_OPTIONS}
-        onChange={(value) => update({ language: value || undefined })}
-      />
-    </div>
+    <>
+      <Section label="Genres" emoji="🎬">
+        <div className="flex flex-wrap gap-2">
+          {genreOptions.map((genre) => (
+            <Pill key={genre.id} active={filters.genres.includes(genre.id)} onClick={() => toggleGenre(genre.id)}>
+              {genre.name}
+            </Pill>
+          ))}
+        </div>
+      </Section>
+
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <Select
+          label="Sort by"
+          value={filters.sortBy}
+          options={sortOptionsFor(mediaType)}
+          onChange={(value) => update({ sortBy: value })}
+        />
+        <Select
+          label="Year from"
+          value={filters.yearMin ?? 0}
+          options={[{ label: "Any", value: 0 }, ...YEAR_OPTIONS]}
+          onChange={(value) => update({ yearMin: Number(value) || undefined })}
+        />
+        <Select
+          label="Year to"
+          value={filters.yearMax ?? 0}
+          options={[{ label: "Any", value: 0 }, ...YEAR_OPTIONS]}
+          onChange={(value) => update({ yearMax: Number(value) || undefined })}
+        />
+        <Select
+          label="Min rating"
+          value={filters.minRating ?? 0}
+          options={RATING_OPTIONS}
+          onChange={(value) => update({ minRating: Number(value) || undefined })}
+        />
+        <Select
+          label="Language"
+          value={filters.language ?? ""}
+          options={LANGUAGE_OPTIONS}
+          onChange={(value) => update({ language: value || undefined })}
+        />
+      </div>
+    </>
   );
 }
 
@@ -252,32 +264,43 @@ function FilterModal({
   return createPortal(
     // Bottom sheet on mobile, centred dialog on desktop.
     <div className="fixed inset-0 z-[60] flex items-end justify-center sm:items-center sm:p-4">
-      <div className="absolute inset-0 animate-fade-in bg-black/60" onClick={onClose} />
-      <div className="relative flex max-h-[88vh] w-full animate-slide-up flex-col rounded-t-2xl border border-white/10 bg-surface shadow-2xl shadow-black/50 sm:max-h-[85vh] sm:max-w-2xl sm:animate-pop-in sm:rounded-2xl">
-        <div className="shrink-0 px-4 pb-3 pt-3 sm:px-6">
+      <div className="absolute inset-0 animate-fade-in bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative flex max-h-[88vh] w-full animate-slide-up flex-col overflow-hidden rounded-t-[28px] border border-white/10 bg-surface shadow-2xl shadow-black/50 sm:max-h-[85vh] sm:max-w-2xl sm:animate-pop-in sm:rounded-[28px]">
+        {/* Soft accent glow behind the header */}
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-primary/15 to-transparent" />
+
+        <div className="relative shrink-0 px-5 pb-4 pt-4 sm:px-6">
           <div className="mx-auto mb-3 h-1.5 w-10 rounded-full bg-white/15 sm:hidden" />
-          <div className="flex items-center justify-between">
-            <h2 className="text-base font-bold sm:text-lg">Filters{activeCount > 0 ? ` · ${activeCount}` : ""}</h2>
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary-dark text-white shadow-lg shadow-primary-dark/40">
+                <Sparkles className="h-5 w-5" />
+              </span>
+              <div className="leading-tight">
+                <h2 className="text-base font-bold sm:text-lg">Filters{activeCount > 0 ? ` · ${activeCount}` : ""}</h2>
+                <p className="text-xs text-muted">Find your next watch ✨</p>
+              </div>
+            </div>
             <button
               type="button"
               onClick={onClose}
               aria-label="Close filters"
-              className="rounded-full p-1 text-muted transition-colors hover:bg-white/10 hover:text-white"
+              className="rounded-full p-1.5 text-muted transition-colors hover:bg-white/10 hover:text-white"
             >
               <X className="h-5 w-5" />
             </button>
           </div>
         </div>
 
-        <div className="flex-1 space-y-4 overflow-y-auto px-4 pb-4 sm:px-6">{children}</div>
+        <div className="relative flex-1 space-y-5 overflow-y-auto px-5 pb-5 sm:px-6">{children}</div>
 
-        <div className="flex shrink-0 items-center gap-3 border-t border-white/10 bg-surface px-4 py-3 sm:px-6">
+        <div className="flex shrink-0 items-center gap-3 border-t border-white/10 bg-surface px-5 py-3.5 sm:px-6">
           <button
             type="button"
             onClick={onReset}
             disabled={!showReset}
             className={cn(
-              "flex items-center gap-1.5 rounded-lg border border-white/10 px-4 py-2.5 text-sm font-medium transition-colors",
+              "flex items-center gap-1.5 rounded-full border border-white/10 px-4 py-2.5 text-sm font-medium transition-colors",
               showReset ? "text-muted hover:border-white/20 hover:text-white" : "cursor-not-allowed text-muted/40",
             )}
           >
@@ -287,14 +310,44 @@ function FilterModal({
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 rounded-lg bg-primary-dark px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-dark/90 sm:flex-none sm:ml-auto sm:px-8"
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-primary-dark px-7 py-2.5 text-sm font-semibold text-white shadow-lg shadow-primary-dark/30 transition-all hover:bg-primary-dark/90 hover:shadow-primary-dark/50 sm:ml-auto sm:flex-none"
           >
+            <Sparkles className="h-3.5 w-3.5" />
             Show results
           </button>
         </div>
       </div>
     </div>,
     document.body,
+  );
+}
+
+function Section({ label, emoji, children }: { label: string; emoji?: string; children: ReactNode }) {
+  return (
+    <div className="space-y-2.5">
+      <span className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted">
+        {emoji && <span className="text-sm">{emoji}</span>}
+        {label}
+      </span>
+      {children}
+    </div>
+  );
+}
+
+function Pill({ active, onClick, children }: { active: boolean; onClick: () => void; children: ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "rounded-full px-3.5 py-1.5 text-sm font-medium transition-all active:scale-95",
+        active
+          ? "bg-primary-dark text-white shadow-sm shadow-primary-dark/40"
+          : "bg-white/5 text-muted hover:bg-white/10 hover:text-white",
+      )}
+    >
+      {children}
+    </button>
   );
 }
 
@@ -318,83 +371,5 @@ function Chip({ label, onRemove }: { label: string; onRemove: () => void }) {
         <X className="h-3 w-3" />
       </button>
     </span>
-  );
-}
-
-function GenreSelect({
-  genres,
-  selected,
-  genreName,
-  onToggle,
-}: {
-  genres: Genre[];
-  selected: number[];
-  genreName: Map<number, string>;
-  onToggle: (id: number) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const [search, setSearch] = useState("");
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    function onClick(event: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) setOpen(false);
-    }
-    document.addEventListener("mousedown", onClick);
-    return () => document.removeEventListener("mousedown", onClick);
-  }, []);
-
-  const count = selected.filter((id) => genreName.has(id)).length;
-  const filtered = genres.filter((g) => g.name.toLowerCase().includes(search.toLowerCase()));
-
-  return (
-    <label className="flex w-full flex-col gap-1">
-      <span className="text-xs font-medium uppercase tracking-wide text-muted">Genres</span>
-      <div ref={containerRef} className="relative">
-        <button
-          type="button"
-          onClick={() => setOpen((prev) => !prev)}
-          className="flex w-full items-center justify-between gap-2 rounded-lg border border-white/10 bg-surface px-4 py-2.5 text-left text-sm font-medium transition-colors hover:border-white/20"
-        >
-          <span className="truncate">{count ? `${count} selected` : "All genres"}</span>
-          <ChevronDown className={cn("h-4 w-4 shrink-0 text-muted transition-transform", open && "rotate-180")} />
-        </button>
-
-        {open && (
-          <div className="absolute z-30 mt-2 w-full min-w-[12rem] overflow-hidden rounded-lg border border-white/10 bg-surface shadow-xl">
-            <div className="border-b border-white/10 p-2">
-              <input
-                autoFocus
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="Find a genre"
-                className="w-full rounded-md bg-surface-light px-3 py-1.5 text-sm outline-none placeholder:text-muted"
-              />
-            </div>
-            <ul className="max-h-52 overflow-y-auto py-1">
-              {filtered.length === 0 && <li className="px-4 py-2 text-sm text-muted">No genres</li>}
-              {filtered.map((genre) => {
-                const active = selected.includes(genre.id);
-                return (
-                  <li key={genre.id}>
-                    <button
-                      type="button"
-                      onClick={() => onToggle(genre.id)}
-                      className={cn(
-                        "flex w-full items-center justify-between gap-2 px-4 py-2 text-left text-sm transition-colors hover:bg-white/5",
-                        active ? "font-semibold text-white" : "text-muted",
-                      )}
-                    >
-                      <span className="truncate">{genre.name}</span>
-                      {active && <Check className="h-4 w-4 shrink-0 text-primary" />}
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        )}
-      </div>
-    </label>
   );
 }
