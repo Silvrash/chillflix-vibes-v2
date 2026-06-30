@@ -50,3 +50,27 @@ export const vidSrcTo: StreamServer = {
 };
 
 export const STREAM_SERVERS: StreamServer[] = [vidLink, vidSrcMe, vidSrcTo];
+
+/**
+ * vidnest's anime player, keyed by AniList id with an explicit sub track. It
+ * carries subbed sources the TMDB-based players often lack, so it's the primary
+ * ("Player 1") choice for anime. The episode number is the within-AniList-entry
+ * number (matches the TMDB episode for single-cour seasons).
+ */
+export function vidnestAnime(anilistId: number): StreamServer {
+  return {
+    name: "Player 1",
+    getMovieLink: () => `https://vidnest.fun/anime/${anilistId}/1/sub`,
+    getEpisodeLink: (_tmdbId, _season, episode) => `https://vidnest.fun/anime/${anilistId}/${episode}/sub`,
+  };
+}
+
+/**
+ * Server lineup for anime: vidnest leads (most reliable for subbed anime), then
+ * the TMDB-based players as fallbacks. vidsrc.to is intentionally dropped here.
+ * Falls back to the standard lineup when the AniList id is unknown.
+ */
+export function getAnimeServers(anilistId: number | null): StreamServer[] {
+  if (!anilistId) return STREAM_SERVERS;
+  return [vidnestAnime(anilistId), { ...vidLink, name: "Player 2" }, { ...vidSrcMe, name: "Player 3" }];
+}

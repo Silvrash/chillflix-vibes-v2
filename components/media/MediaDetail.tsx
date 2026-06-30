@@ -1,20 +1,40 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { createPortal } from "react-dom";
+import { Spinner } from "@/components/ui/Spinner";
+import { getTMDBImageUrl } from "@/lib/tmdb/images";
+import { useMediaTypeQueries } from "@/lib/tmdb/media-queries";
+import {
+  MediaType,
+  getMovieCreditsQuery,
+  getTVCreditsQuery,
+  type Cast,
+  type Crew,
+  type Movie,
+  type TVShow,
+  type Video,
+} from "@/lib/tmdb/queries";
+import { cn, formatDate, normalizeRating } from "@/lib/utils";
+import { useQuery } from "@tanstack/react-query";
+import { ArrowLeft, Calendar, ChevronDown, Clock, Play, Star, X, Youtube } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, Calendar, Clock, Play, Star, X, Youtube } from "lucide-react";
-import { useMediaTypeQueries } from "@/lib/tmdb/media-queries";
-import { getTMDBImageUrl } from "@/lib/tmdb/images";
-import { formatDate, normalizeRating } from "@/lib/utils";
-import { MediaType, type Movie, type TVShow, type Video } from "@/lib/tmdb/queries";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { MediaRail } from "./MediaRail";
-import { Spinner } from "@/components/ui/Spinner";
 
 export function MediaDetail({ id, type }: { id: number; type: MediaType }) {
   const { query, recommendedQuery, similarQuery } = useMediaTypeQueries(id, type);
   const [trailerOpen, setTrailerOpen] = useState(false);
+  const [castOpen, setCastOpen] = useState(false);
+  const [crewOpen, setCrewOpen] = useState(false);
+
+  // Cast/crew are fetched lazily — only once a section is expanded — so they
+  // don't slow the initial page load. One endpoint backs both sections.
+  const isMovie = type === MediaType.movie;
+  const creditsEnabled = castOpen || crewOpen;
+  const movieCredits = useQuery(getMovieCreditsQuery({ enabled: creditsEnabled && isMovie, variables: { movie_id: id } }));
+  const tvCredits = useQuery(getTVCreditsQuery({ enabled: creditsEnabled && !isMovie, variables: { series_id: id } }));
+  const creditsQuery = isMovie ? movieCredits : tvCredits;
 
   if (query.isLoading || !query.data) {
     return (
@@ -34,7 +54,9 @@ export function MediaDetail({ id, type }: { id: number; type: MediaType }) {
   // Decorative backdrop (gradient + poster overlaid) — w1280 transcodes ~3.6x
   // faster than `original` with no visible quality loss, so the hero loads quickly.
   const backdrop = getTMDBImageUrl(data.backdrop_path, "w1280");
-  const poster = getTMDBImageUrl(data.poster_path, "w342");
+  // w780 (not w342): the poster renders ~240px wide, which is ~480–720px on
+  // hi-DPI screens, so a larger source keeps it crisp instead of upscaled.
+  const poster = getTMDBImageUrl(data.poster_path, "w780");
 
   const recommended = ((recommendedQuery.data?.pages ?? []) as any[]).flatMap((page) => page.results) as (Movie | TVShow)[];
   const similar = ((similarQuery.data?.pages ?? []) as any[]).flatMap((page) => page.results) as (Movie | TVShow)[];
@@ -59,9 +81,9 @@ export function MediaDetail({ id, type }: { id: number; type: MediaType }) {
 
       <div className="mx-auto -mt-28 max-w-[1600px] px-4 sm:px-6 lg:px-10">
         <div className="flex flex-col gap-6 sm:flex-row">
-          <div className="relative z-10 mx-auto aspect-[2/3] w-40 shrink-0 overflow-hidden rounded-xl ring-1 ring-white/10 sm:mx-0 sm:w-52">
+          <div className="relative z-10 mx-auto aspect-[2/3] w-44 shrink-0 overflow-hidden rounded-xl ring-1 ring-white/10 sm:mx-0 sm:w-80">
             {poster ? (
-              <Image src={poster} alt={title} fill className="object-cover" sizes="208px" />
+              <Image src={poster} alt={title} fill className="object-cover" sizes="240px" />
             ) : (
               <div className="flex h-full items-center justify-center bg-surface-light text-center text-sm text-muted">
                 {title}
@@ -134,17 +156,81 @@ export function MediaDetail({ id, type }: { id: number; type: MediaType }) {
         </div>
 
         <div className="mt-12 space-y-10">
-          {data.credits?.cast?.length ? <MediaRail title="Cast" items={data.credits.cast} /> : null}
           {recommended.length > 0 && (
             <MediaRail title="Recommended" items={recommended} onEndReached={() => recommendedQuery.fetchNextPage()} />
           )}
           {similar.length > 0 && <MediaRail title="Similar" items={similar} onEndReached={() => similarQuery.fetchNextPage()} />}
-          {data.credits?.crew?.length ? <MediaRail title="Crew" items={data.credits.crew} /> : null}
+
+          <div className="space-y-6">
+            <CreditsSection
+              title="Cast"
+              open={castOpen}
+              onToggle={() => setCastOpen((value) => !value)}
+              loading={castOpen && creditsQuery.isLoading}
+              items={creditsQuery.data?.cast ?? []}
+              emptyLabel="No cast information available."
+            />
+            <CreditsSection
+              title="Crew"
+              open={crewOpen}
+              onToggle={() => setCrewOpen((value) => !value)}
+              loading={crewOpen && creditsQuery.isLoading}
+              items={creditsQuery.data?.crew ?? []}
+              emptyLabel="No crew information available."
+            />
+          </div>
         </div>
       </div>
 
       {trailer && trailerOpen && <TrailerModal videoKey={trailer.key} title={title} onClose={() => setTrailerOpen(false)} />}
     </div>
+  );
+}
+
+/** Collapsible cast/crew rail. Its data is only fetched once `open` is true. */
+function CreditsSection({
+  title,
+  open,
+  loading,
+  onToggle,
+  items,
+  emptyLabel,
+}: {
+  title: string;
+  open: boolean;
+  loading: boolean;
+  onToggle: () => void;
+  items: (Cast | Crew)[];
+  emptyLabel: string;
+}) {
+  return (
+    <section>
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={open}
+        className="flex w-full items-center justify-between gap-3 border-b border-white/10 pb-2 text-left transition-colors hover:border-white/25"
+      >
+        <span className="flex items-baseline gap-2">
+          <span className="text-xl font-bold">{title}</span>
+          {open && !loading && items.length > 0 && <span className="text-sm font-normal text-muted">{items.length}</span>}
+        </span>
+        <ChevronDown className={cn("h-5 w-5 shrink-0 text-muted transition-transform", open && "rotate-180")} />
+      </button>
+      {open && (
+        <div className="mt-4">
+          {loading ? (
+            <div className="flex justify-center py-8">
+              <Spinner />
+            </div>
+          ) : items.length > 0 ? (
+            <MediaRail items={items} />
+          ) : (
+            <p className="py-4 text-sm text-muted">{emptyLabel}</p>
+          )}
+        </div>
+      )}
+    </section>
   );
 }
 

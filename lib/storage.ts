@@ -37,34 +37,3 @@ export function setLastWatched(type: MediaType | string, id: string | number, se
   write(seasonKey(type, id), season);
   write(episodeKey(type, id), episode);
 }
-
-/** Playback preferences (autoplay, auto-play-next), shared across all titles. */
-export interface PlaybackPrefs {
-  autoplay: boolean;
-  playNext: boolean;
-}
-
-const PLAYBACK_PREFS_KEY = "playback-prefs";
-
-export function getPlaybackPrefs(): PlaybackPrefs {
-  const fallback: PlaybackPrefs = { autoplay: true, playNext: true };
-  if (typeof window === "undefined") return fallback;
-  try {
-    const raw = window.localStorage.getItem(PLAYBACK_PREFS_KEY);
-    if (!raw) return fallback;
-    const parsed = JSON.parse(raw) as Partial<PlaybackPrefs>;
-    // Missing keys default to on.
-    return { autoplay: parsed.autoplay !== false, playNext: parsed.playNext !== false };
-  } catch {
-    return fallback;
-  }
-}
-
-export function setPlaybackPrefs(prefs: PlaybackPrefs) {
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.setItem(PLAYBACK_PREFS_KEY, JSON.stringify(prefs));
-  } catch {
-    // Ignore write failures (e.g. private-mode quota).
-  }
-}

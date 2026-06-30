@@ -56,8 +56,3 @@ app/                 # App Router pages
 components/           # UI: layout, browse, media, player, ui
 lib/                  # tmdb client/queries/hooks, streaming, presets, storage
 ```
-
-## Notes
-
-The streaming providers serve content via `<iframe>` embeds. The iframe uses a
-`sandbox` attribute to suppress pop-up/pop-under ads while keeping playback working.

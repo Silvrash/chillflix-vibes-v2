@@ -1,17 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import Image from "next/image";
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { CalendarDays, Check, CheckCircle2, ChevronLeft, ChevronRight, Clock, Play, Star } from "lucide-react";
-import { Player } from "./Player";
 import { MediaRail } from "@/components/media/MediaRail";
 import { Select } from "@/components/ui/Select";
 import { Spinner } from "@/components/ui/Spinner";
-import { STREAM_SERVERS } from "@/lib/streaming/vidsrc";
-import { getLastWatched, getPlaybackPrefs, setLastWatched, setPlaybackPrefs } from "@/lib/storage";
+import { getLastWatched, setLastWatched } from "@/lib/storage";
+import { STREAM_SERVERS, getAnimeServers, type StreamServer } from "@/lib/streaming/vidsrc";
 import { getTMDBImageUrl } from "@/lib/tmdb/images";
-import { cn, getYear, normalizeRating, pad2 } from "@/lib/utils";
 import {
   MediaType,
   getMovieDetailsQuery,
@@ -25,6 +19,12 @@ import {
   type TVDetails,
   type TVShow,
 } from "@/lib/tmdb/queries";
+import { cn, getYear, normalizeRating, pad2 } from "@/lib/utils";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, Clock, Play, Star } from "lucide-react";
+import Image from "next/image";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Player } from "./Player";
 
 interface WatchViewProps {
   id: number;
@@ -39,41 +39,24 @@ export function WatchView({ id, type, initialSeason, initialEpisode }: WatchView
   const [season, setSeason] = useState(initialSeason);
   const [episode, setEpisode] = useState(initialEpisode);
   const [pendingEpisode, setPendingEpisode] = useState<number | "last" | null>(null);
-  const [autoplay, setAutoplay] = useState(true);
-  const [playNext, setPlayNext] = useState(true);
-  const [prefsLoaded, setPrefsLoaded] = useState(false);
+  const [restored, setRestored] = useState(false);
 
   // Restore the last-watched season/episode from localStorage on mount.
   useEffect(() => {
-    if (!isTv) return;
-    const last = getLastWatched(type, id);
-    if (last.season) setSeason(last.season);
-    if (last.episode) setEpisode(last.episode);
+    if (isTv) {
+      const last = getLastWatched(type, id);
+      if (last.season) setSeason(last.season);
+      if (last.episode) setEpisode(last.episode);
+    }
+    setRestored(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Load saved playback preferences (autoplay / auto-play-next) on mount. The
-  // player waits for this so its first load already reflects the saved autoplay
-  // choice (localStorage isn't available during SSR).
+  // Persist only after the restore has run — otherwise the default season/episode
+  // would overwrite the saved value on mount before it's restored.
   useEffect(() => {
-    const prefs = getPlaybackPrefs();
-    setAutoplay(prefs.autoplay);
-    setPlayNext(prefs.playNext);
-    setPrefsLoaded(true);
-  }, []);
-
-  function updateAutoplay(value: boolean) {
-    setAutoplay(value);
-    setPlaybackPrefs({ autoplay: value, playNext });
-  }
-  function updatePlayNext(value: boolean) {
-    setPlayNext(value);
-    setPlaybackPrefs({ autoplay, playNext: value });
-  }
-
-  useEffect(() => {
-    if (isTv) setLastWatched(type, id, season, episode);
-  }, [isTv, type, id, season, episode]);
+    if (isTv && restored) setLastWatched(type, id, season, episode);
+  }, [isTv, restored, type, id, season, episode]);
 
   const movie = useQuery(getMovieDetailsQuery({ enabled: !isTv, variables: { movie_id: id } }));
   const tv = useQuery(getTVDetailsQuery({ enabled: isTv, variables: { tv_id: id } }));
@@ -105,6 +88,20 @@ export function WatchView({ id, type, initialSeason, initialEpisode }: WatchView
   const runtime = isTv ? tv.data?.episode_run_time?.[0] : movie.data?.runtime;
   const genres = (isTv ? tv.data?.genres : movie.data?.genres) ?? [];
   const totalSeasons = tv.data?.number_of_seasons ?? 0;
+
+  // Anime (Japanese animation) streams from vidnest, which is keyed by AniList id.
+  const isAnime = isTv && genres.some((g) => g.id === 16) && tv.data?.original_language === "ja";
+  const animeId = useQuery({
+    queryKey: ["anime-id", id],
+    queryFn: async (): Promise<{ anilistId: number | null }> => {
+      const res = await fetch(`/api/anime-id/${id}`);
+      if (!res.ok) return { anilistId: null };
+      return res.json();
+    },
+    enabled: isAnime,
+    staleTime: Infinity,
+  });
+  const anilistId = animeId.data?.anilistId ?? null;
 
   const episodes = seasonDetails.data?.episodes ?? [];
   const currentEpisode = episodes.find((ep) => ep.episode_number === episode);
@@ -154,7 +151,7 @@ export function WatchView({ id, type, initialSeason, initialEpisode }: WatchView
     goToNextEpisodeRef.current = goToNextEpisode;
   });
   useEffect(() => {
-    if (!isTv || !playNext) return;
+    if (!isTv) return;
     function onPlayerMessage(event: MessageEvent) {
       if (event.origin !== "https://vidlink.pro") return;
       const payload = event.data;
@@ -166,16 +163,18 @@ export function WatchView({ id, type, initialSeason, initialEpisode }: WatchView
     }
     window.addEventListener("message", onPlayerMessage);
     return () => window.removeEventListener("message", onPlayerMessage);
-  }, [isTv, playNext, season, episode]);
+  }, [isTv, season, episode]);
 
-  const server = STREAM_SERVERS[serverIndex];
+  // Anime leads with vidnest (Player 1, dropping vidsrc.to); everything else
+  // uses the standard lineup.
+  const servers = useMemo<StreamServer[]>(() => (isAnime ? getAnimeServers(anilistId) : STREAM_SERVERS), [isAnime, anilistId]);
+  const server = servers[Math.min(serverIndex, servers.length - 1)];
+  // Hold the iframe until the AniList lookup settles, so anime doesn't briefly
+  // load a fallback before switching to vidnest.
+  const awaitingAnimeId = isAnime && animeId.isLoading;
   const src = useMemo(
-    () => (isTv ? server.getEpisodeLink(id, season, episode, { autoplay }) : server.getMovieLink(id, { autoplay })),
-    // `autoplay` is read but intentionally excluded: toggling it should apply to the
-    // next load, not reload (and restart) the current episode. `prefsLoaded` is
-    // included so the URL picks up the saved autoplay choice once on first load.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [isTv, server, id, season, episode, prefsLoaded],
+    () => (isTv ? server.getEpisodeLink(id, season, episode, { autoplay: true }) : server.getMovieLink(id, { autoplay: true })),
+    [isTv, server, id, season, episode],
   );
 
   const recs = (((isTv ? tvRecs.data : movieRecs.data)?.pages ?? []) as { results: (Movie | TVShow)[] }[]).flatMap(
@@ -191,14 +190,16 @@ export function WatchView({ id, type, initialSeason, initialEpisode }: WatchView
           {/* On lg, the player + info sticks so the episode list scrolls with the
               page — a single page scrollbar instead of a nested second one. */}
           <div className={cn(isTv && "lg:sticky lg:top-20 lg:self-start")}>
-            {prefsLoaded ? (
-              <Player src={src} title={title} />
+            {awaitingAnimeId ? (
+              <div className="flex aspect-video w-full items-center justify-center rounded-xl bg-black ring-1 ring-white/10">
+                <Spinner />
+              </div>
             ) : (
-              <div className="aspect-video w-full rounded-xl bg-black ring-1 ring-white/10" />
+              <Player src={src} title={title} />
             )}
 
             <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-              <ServerTabs value={serverIndex} onChange={setServerIndex} />
+              <ServerTabs servers={servers} value={serverIndex} onChange={setServerIndex} />
               {isTv && (
                 <div className="flex items-center gap-2">
                   <EpisodeNavButton direction="prev" disabled={atFirstEpisode} onClick={goToPreviousEpisode} />
@@ -208,11 +209,6 @@ export function WatchView({ id, type, initialSeason, initialEpisode }: WatchView
                   <EpisodeNavButton direction="next" disabled={atLastEpisode} onClick={goToNextEpisode} />
                 </div>
               )}
-            </div>
-
-            <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2">
-              <PlaybackToggle label="Autoplay" checked={autoplay} onChange={updateAutoplay} />
-              {isTv && <PlaybackToggle label="Auto-play next" checked={playNext} onChange={updatePlayNext} />}
             </div>
 
             <h1 className="mt-5 text-2xl font-bold sm:text-3xl">{title ?? "Loading…"}</h1>
@@ -277,10 +273,10 @@ export function WatchView({ id, type, initialSeason, initialEpisode }: WatchView
   );
 }
 
-function ServerTabs({ value, onChange }: { value: number; onChange: (index: number) => void }) {
+function ServerTabs({ servers, value, onChange }: { servers: StreamServer[]; value: number; onChange: (index: number) => void }) {
   return (
-    <div className="inline-flex rounded-lg border border-white/10 bg-surface p-1">
-      {STREAM_SERVERS.map((srv, index) => (
+    <div className="inline-flex flex-wrap rounded-lg border border-white/10 bg-surface p-1">
+      {servers.map((srv, index) => (
         <button
           key={srv.name}
           type="button"
@@ -294,29 +290,6 @@ function ServerTabs({ value, onChange }: { value: number; onChange: (index: numb
         </button>
       ))}
     </div>
-  );
-}
-
-function PlaybackToggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (value: boolean) => void }) {
-  return (
-    <button
-      type="button"
-      role="checkbox"
-      aria-checked={checked}
-      aria-label={label}
-      onClick={() => onChange(!checked)}
-      className="group flex items-center gap-2 text-sm transition-colors"
-    >
-      <span
-        className={cn(
-          "flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded border transition-colors",
-          checked ? "border-primary-dark bg-primary-dark text-white" : "border-white/25 bg-white/5 group-hover:border-white/40",
-        )}
-      >
-        {checked && <Check className="h-3 w-3" strokeWidth={3.5} />}
-      </span>
-      <span className={cn("font-medium", checked ? "text-white" : "text-muted group-hover:text-white")}>{label}</span>
-    </button>
   );
 }
 

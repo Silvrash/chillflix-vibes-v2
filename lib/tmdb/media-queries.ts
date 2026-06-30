@@ -17,7 +17,7 @@ function useMovieMediaQueries(id: number, type: MediaType) {
       enabled: type === MediaType.movie,
       variables: {
         movie_id: id,
-        append_to_response: appendToResponse(AppendToResponse.credits, AppendToResponse.images, AppendToResponse.videos),
+        append_to_response: appendToResponse(AppendToResponse.images, AppendToResponse.videos),
       },
     }),
   );
@@ -51,7 +51,7 @@ function useTvShowMediaQueries(id: number, type: MediaType) {
       enabled: type === MediaType.tv,
       variables: {
         tv_id: id,
-        append_to_response: appendToResponse(AppendToResponse.credits, AppendToResponse.images, AppendToResponse.videos),
+        append_to_response: appendToResponse(AppendToResponse.images, AppendToResponse.videos),
       },
     }),
   );

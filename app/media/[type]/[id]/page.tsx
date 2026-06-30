@@ -25,7 +25,8 @@ export default async function MediaDetailPage({ params }: { params: { type: stri
   const type = params.type as MediaType;
   const isMovie = type === MediaType.movie;
   // Must match the append string the client hook uses, or hydration misses.
-  const append = appendToResponse(AppendToResponse.credits, AppendToResponse.images, AppendToResponse.videos);
+  // Credits are intentionally excluded — they're fetched lazily when expanded.
+  const append = appendToResponse(AppendToResponse.images, AppendToResponse.videos);
 
   const queryClient = makeQueryClient();
   await queryClient.prefetchQuery({

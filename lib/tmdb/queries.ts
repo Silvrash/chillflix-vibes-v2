@@ -466,6 +466,22 @@ export const getTVDetailsQuery = getQuery<TVDetails, TVDetailsInput>(GetTVDetail
 export const getTVDetailsLazyQuery = getLazyQuery<TVDetails, TVDetailsInput>(GetTVDetailsQueryKey);
 export const getTVDetailsInfiniteQuery = getInfiniteQuery<TVDetails, TVDetailsInput>(GetTVDetailsQueryKey);
 
+// Standalone credits endpoints — fetched lazily (on expand) so cast/crew don't
+// weigh down the initial detail-page payload.
+export interface MovieCreditsInput {
+  movie_id: number;
+}
+export const GetMovieCreditsQueryKey = "/movie/[movie_id]/credits";
+export const getMovieCreditsQuery = getQuery<Credit, MovieCreditsInput>(GetMovieCreditsQueryKey);
+export const getMovieCreditsLazyQuery = getLazyQuery<Credit, MovieCreditsInput>(GetMovieCreditsQueryKey);
+
+export interface TVCreditsInput {
+  series_id: number;
+}
+export const GetTVCreditsQueryKey = "/tv/[series_id]/credits";
+export const getTVCreditsQuery = getQuery<Credit, TVCreditsInput>(GetTVCreditsQueryKey);
+export const getTVCreditsLazyQuery = getLazyQuery<Credit, TVCreditsInput>(GetTVCreditsQueryKey);
+
 export interface MovieSearchResponse {
   page: number;
   total_results: number;

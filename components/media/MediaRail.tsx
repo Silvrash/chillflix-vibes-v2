@@ -6,7 +6,7 @@ import { MediaCard } from "./MediaCard";
 import type { Cast, Crew, Movie, TVShow } from "@/lib/tmdb/queries";
 
 interface MediaRailProps {
-  title: string;
+  title?: string;
   items: (Movie | TVShow | Cast | Crew)[];
   onEndReached?: () => void;
 }
@@ -32,7 +32,7 @@ export function MediaRail({ title, items, onEndReached }: MediaRailProps) {
 
   return (
     <section className="group/rail relative">
-      <h2 className="mb-3 text-xl font-bold">{title}</h2>
+      {title && <h2 className="mb-3 text-xl font-bold">{title}</h2>}
 
       <button
         type="button"
