@@ -25,15 +25,20 @@ export interface StreamServer {
 // autostart playback when requested. "Play next" is handled by WatchView via the
 // player's `ended` event rather than vidlink's in-iframe button, so our episode
 // state stays in sync with what is playing.
-function vidlinkOpts(autoplay?: boolean) {
-  return autoplay ? "primaryColor=2563eb&autoplay=true" : "primaryColor=2563eb";
+function vidlinkOpts(_autoplay?: boolean) {
+  const searchParams = new URLSearchParams(
+    "primaryColor=2563eb&secondaryColor=a2a2a2&iconColor=eefdec&icons=vid&player=jw&title=true&poster=true&nextbutton=true",
+  );
+  // autoplay makes it start on mute
+  // if (autoplay) searchParams.append("autoplay", "true");
+  return searchParams.toString();
 }
 
 export const vidLink: StreamServer = {
   name: "Player 1",
-  getMovieLink: (tmdbId, opts) => `https://vidlink.pro/movie/${tmdbId}?player=jw&nextbutton=true&${vidlinkOpts(opts?.autoplay)}`,
+  getMovieLink: (tmdbId, opts) => `https://vidlink.pro/movie/${tmdbId}?${vidlinkOpts(opts?.autoplay)}`,
   getEpisodeLink: (tmdbId, season, episode, opts) =>
-    `https://vidlink.pro/tv/${tmdbId}/${season}/${episode}?player=jw&nextbutton=true&${vidlinkOpts(opts?.autoplay)}`,
+    `https://vidlink.pro/tv/${tmdbId}/${season}/${episode}?${vidlinkOpts(opts?.autoplay)}`,
 };
 
 export const vidSrcMe: StreamServer = {
@@ -72,5 +77,12 @@ export function vidnestAnime(anilistId: number): StreamServer {
  */
 export function getAnimeServers(anilistId: number | null): StreamServer[] {
   if (!anilistId) return STREAM_SERVERS;
-  return [vidnestAnime(anilistId), { ...vidLink, name: "Player 2" }, { ...vidSrcMe, name: "Player 3" }];
+  return [
+    vidnestAnime(anilistId),
+    { ...vidLink, name: "Player 2" },
+    {
+      ...vidSrcMe,
+      name: "Player 3",
+    },
+  ];
 }

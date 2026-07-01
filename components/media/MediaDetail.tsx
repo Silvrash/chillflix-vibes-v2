@@ -280,7 +280,6 @@ function TrailerModal({ videoKey, title, onClose }: { videoKey: string; title: s
             title={`${title} — Trailer`}
             className="absolute inset-0 h-full w-full border-0"
             allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
-            allowFullScreen
           />
         </div>
       </div>

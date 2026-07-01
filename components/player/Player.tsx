@@ -13,7 +13,6 @@ export function Player({ src, title }: PlayerProps) {
         src={src}
         title={title ?? "Player"}
         className="absolute inset-0 h-full w-full border-0"
-        allowFullScreen
         allow="autoplay *; fullscreen *; picture-in-picture *; encrypted-media *"
         referrerPolicy="origin"
       />
