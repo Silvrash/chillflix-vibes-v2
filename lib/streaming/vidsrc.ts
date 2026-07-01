@@ -31,9 +31,9 @@ function vidlinkOpts(autoplay?: boolean) {
 
 export const vidLink: StreamServer = {
   name: "Player 1",
-  getMovieLink: (tmdbId, opts) => `https://vidlink.pro/movie/${tmdbId}?${vidlinkOpts(opts?.autoplay)}`,
+  getMovieLink: (tmdbId, opts) => `https://vidlink.pro/movie/${tmdbId}?player=jw&nextbutton=true&${vidlinkOpts(opts?.autoplay)}`,
   getEpisodeLink: (tmdbId, season, episode, opts) =>
-    `https://vidlink.pro/tv/${tmdbId}/${season}/${episode}?${vidlinkOpts(opts?.autoplay)}`,
+    `https://vidlink.pro/tv/${tmdbId}/${season}/${episode}?player=jw&nextbutton=true&${vidlinkOpts(opts?.autoplay)}`,
 };
 
 export const vidSrcMe: StreamServer = {
