@@ -23,6 +23,7 @@ import { cn, getYear, normalizeRating, pad2 } from "@/lib/utils";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, Clock, Play, Star } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Player } from "./Player";
 
@@ -211,7 +212,9 @@ export function WatchView({ id, type, initialSeason, initialEpisode }: WatchView
               )}
             </div>
 
-            <h1 className="mt-5 text-2xl font-bold sm:text-3xl">{title ?? "Loading…"}</h1>
+            <Link href={`/media/${type}/${id}`} title="View details" className="mt-5 inline-block">
+              <h1 className="text-2xl font-bold transition-colors hover:text-primary sm:text-3xl">{title ?? "Loading…"}</h1>
+            </Link>
             <MetaRow year={year} rating={rating} runtime={runtime} genres={genres} totalSeasons={isTv ? totalSeasons : 0} />
 
             {isTv && currentEpisode && (

@@ -15,10 +15,10 @@ import {
 } from "@/lib/tmdb/queries";
 import { cn, formatDate, normalizeRating } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Calendar, ChevronDown, Clock, Play, Star, X, Youtube } from "lucide-react";
+import { ArrowLeft, Calendar, ChevronDown, Clock, Download, Play, Star, X, Youtube } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { MediaRail } from "./MediaRail";
 
@@ -35,6 +35,19 @@ export function MediaDetail({ id, type }: { id: number; type: MediaType }) {
   const movieCredits = useQuery(getMovieCreditsQuery({ enabled: creditsEnabled && isMovie, variables: { movie_id: id } }));
   const tvCredits = useQuery(getTVCreditsQuery({ enabled: creditsEnabled && !isMovie, variables: { series_id: id } }));
   const creditsQuery = isMovie ? movieCredits : tvCredits;
+
+  // dlhub.cc is a title-search download site — only surface a Download button
+  // when it actually has files for this title.
+  const dlhubTitle = query.data ? ("title" in query.data ? query.data.title : query.data.name) : undefined;
+  const dlhub = useQuery({
+    queryKey: ["dlhub", dlhubTitle],
+    queryFn: async (): Promise<{ available: boolean; downloads: DownloadOption[] }> => {
+      const res = await fetch(`/api/dlhub?title=${encodeURIComponent(dlhubTitle ?? "")}`);
+      return res.ok ? res.json() : { available: false, downloads: [] };
+    },
+    enabled: !!dlhubTitle,
+    staleTime: Infinity,
+  });
 
   if (query.isLoading || !query.data) {
     return (
@@ -151,6 +164,7 @@ export function MediaDetail({ id, type }: { id: number; type: MediaType }) {
                   Trailer
                 </button>
               )}
+              {dlhub.data?.available && dlhub.data.downloads.length > 0 && <DownloadMenu downloads={dlhub.data.downloads} />}
             </div>
           </div>
         </div>
@@ -231,6 +245,62 @@ function CreditsSection({
         </div>
       )}
     </section>
+  );
+}
+
+interface DownloadOption {
+  name: string;
+  magnet: string;
+}
+
+/**
+ * Direct download menu: each item is a magnet link that hands off to the user's
+ * torrent client — no navigation to another page.
+ */
+function DownloadMenu({ downloads }: { downloads: DownloadOption[] }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function onClick(event: MouseEvent) {
+      if (ref.current && !ref.current.contains(event.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, []);
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        aria-expanded={open}
+        className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-white/5 px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-white/10"
+      >
+        <Download className="h-3.5 w-3.5" />
+        Download
+        <ChevronDown className={cn("h-3.5 w-3.5 text-muted transition-transform", open && "rotate-180")} />
+      </button>
+
+      {open && (
+        <div className="absolute left-0 z-30 mt-2 max-h-72 w-[22rem] max-w-[calc(100vw-2rem)] overflow-y-auto rounded-xl border border-white/10 bg-surface p-1.5 shadow-xl">
+          <p className="px-3 pb-1.5 pt-1 text-[11px] font-medium uppercase tracking-wide text-muted">
+            Torrent · opens your download app
+          </p>
+          {downloads.map((option) => (
+            <a
+              key={option.magnet}
+              href={option.magnet}
+              onClick={() => setOpen(false)}
+              className="flex items-start gap-2 rounded-lg px-3 py-2 text-sm leading-snug text-white/90 transition-colors hover:bg-white/10"
+            >
+              <Download className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+              <span className="break-words">{option.name}</span>
+            </a>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
