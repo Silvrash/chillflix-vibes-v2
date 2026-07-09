@@ -16,7 +16,6 @@ import {
 import { cn, formatDate, normalizeRating } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Calendar, ChevronDown, Clock, Download, Play, Star, X, Youtube } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -80,7 +79,9 @@ export function MediaDetail({ id, type }: { id: number; type: MediaType }) {
     <div className="pb-16">
       {/* Backdrop hero */}
       <div className="relative h-[40vh] min-h-[300px] w-full sm:h-[55vh]">
-        {backdrop && <Image src={backdrop} alt={title} fill priority quality={78} className="object-cover" sizes="100vw" />}
+        {backdrop && (
+          <img src={backdrop} alt={title} fetchPriority="high" className="absolute inset-0 h-full w-full object-cover" />
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
 
         <Link
@@ -96,7 +97,7 @@ export function MediaDetail({ id, type }: { id: number; type: MediaType }) {
         <div className="flex flex-col gap-6 sm:flex-row">
           <div className="relative z-10 mx-auto aspect-[2/3] w-44 shrink-0 overflow-hidden rounded-xl ring-1 ring-white/10 sm:mx-0 sm:w-80">
             {poster ? (
-              <Image src={poster} alt={title} fill className="object-cover" sizes="240px" />
+              <img src={poster} alt={title} className="absolute inset-0 h-full w-full object-cover" />
             ) : (
               <div className="flex h-full items-center justify-center bg-surface-light text-center text-sm text-muted">
                 {title}

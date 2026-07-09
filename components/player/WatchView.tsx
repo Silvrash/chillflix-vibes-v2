@@ -22,7 +22,6 @@ import {
 import { cn, getYear, normalizeRating, pad2 } from "@/lib/utils";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, Clock, Play, Star } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Player } from "./Player";
@@ -507,7 +506,7 @@ function EpisodeList({
           >
             <div className="relative aspect-video w-28 shrink-0 overflow-hidden rounded-md bg-surface-light">
               {still ? (
-                <Image src={still} alt="" fill className="object-cover" sizes="112px" />
+                <img src={still} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
               ) : (
                 <div className="flex h-full items-center justify-center text-xs text-muted">E{ep.episode_number}</div>
               )}

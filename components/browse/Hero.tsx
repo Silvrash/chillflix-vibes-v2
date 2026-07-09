@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useMemo } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import useEmblaCarousel from "embla-carousel-react";
 import Autoplay from "embla-carousel-autoplay";
@@ -84,13 +83,21 @@ export function Hero({ mediaType, animeOnly }: HeroProps) {
 function HeroSlide({ item, type, priority }: { item: TrendingItem; type: MediaType; priority?: boolean }) {
   const title = item.title || item.name;
   const year = getYear(item.release_date ?? item.first_air_date);
-  const backdrop = getTMDBImageUrl(item.backdrop_path, "original");
+  // w1280 (not original): the optimizer no longer resizes, so cap the source
+  // ourselves — sharp on 1080p while avoiding multi-MB backdrops.
+  const backdrop = getTMDBImageUrl(item.backdrop_path, "w1280");
   const href = `/media/${type}/${item.id}`;
 
   return (
     <div className="relative h-[42vh] min-h-[320px] flex-[0_0_100%] sm:h-[56vh]">
       {backdrop && (
-        <Image src={backdrop} alt={title} fill priority={priority} quality={72} className="object-cover" sizes="100vw" />
+        <img
+          src={backdrop}
+          alt={title}
+          loading={priority ? "eager" : "lazy"}
+          fetchPriority={priority ? "high" : "auto"}
+          className="absolute inset-0 h-full w-full object-cover"
+        />
       )}
       <div className="absolute inset-0 bg-gradient-to-t from-background via-background/70 to-transparent" />
       <div className="absolute inset-0 bg-gradient-to-r from-background/90 via-background/30 to-transparent" />

@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Star } from "lucide-react";
@@ -30,14 +29,7 @@ export function MediaCard({ item }: { item: MediaCardItem }) {
     <div className="group relative">
       <div className="relative aspect-[2/3] w-full overflow-hidden rounded-lg bg-surface-light ring-1 ring-white/5 transition-transform duration-200 group-hover:scale-[1.03] group-hover:ring-primary/50">
         {poster ? (
-          <Image
-            src={poster}
-            alt={title}
-            fill
-            quality={70}
-            sizes="(max-width: 640px) 33vw, (max-width: 1024px) 20vw, 160px"
-            className="object-cover"
-          />
+          <img src={poster} alt={title} loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
         ) : (
           <div className="flex h-full w-full items-center justify-center px-2 text-center text-xs text-muted">{title}</div>
         )}

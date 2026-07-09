@@ -3,7 +3,7 @@ import { Inter } from "next/font/google";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { Navbar } from "@/components/layout/Navbar";
 import { PWARegister } from "@/components/PWARegister";
-import { SITE_DESCRIPTION, SITE_NAME, SITE_TAGLINE, SITE_URL } from "@/lib/seo";
+import { SITE_DESCRIPTION, SITE_NAME, SITE_OG_IMAGE, SITE_TAGLINE, SITE_URL } from "@/lib/seo";
 import { Providers } from "./providers";
 import "./globals.css";
 
@@ -28,13 +28,13 @@ export const metadata: Metadata = {
     description: SITE_DESCRIPTION,
     url: SITE_URL,
     locale: "en_US",
-    images: [{ url: "/og.png", width: 1200, height: 630, alt: TITLE }],
+    images: [{ url: SITE_OG_IMAGE, width: 1200, height: 630, alt: TITLE }],
   },
   twitter: {
     card: "summary_large_image",
     title: TITLE,
     description: SITE_DESCRIPTION,
-    images: ["/og.png"],
+    images: [SITE_OG_IMAGE],
   },
   robots: {
     index: true,
