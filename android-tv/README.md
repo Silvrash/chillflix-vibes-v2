@@ -16,7 +16,7 @@ Edit [`app/src/main/res/values/strings.xml`](app/src/main/res/values/strings.xml
 and set `site_url` to your deployment, e.g.
 
 ```xml
-<string name="site_url">https://your-domain.com/?tv=1</string>
+<string name="site_url">https://chillflixvibes.vercel.app/?tv=1</string>
 ```
 
 - Keep the `?tv=1` — it forces TV mode even if User-Agent detection is off.

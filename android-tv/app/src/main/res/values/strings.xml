@@ -5,5 +5,5 @@
     <!-- The site the TV app loads. Change this to your deployed URL (or a LAN
          address like http://192.168.1.20:3000 while developing). If you use an
          http:// URL, also flip usesCleartextTraffic to true in AndroidManifest. -->
-    <string name="site_url">https://chillflix-vibes-v2.vercel.app/?tv=1</string>
+    <string name="site_url">https://chillflixvibes.vercel.app/?tv=1</string>
 </resources>
