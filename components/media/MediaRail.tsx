@@ -49,7 +49,7 @@ export function MediaRail({ title, items, onEndReached }: MediaRailProps) {
         className="no-scrollbar flex gap-3 overflow-x-auto scroll-smooth pb-2 sm:gap-4"
       >
         {items.map((item, index) => (
-          <div key={`${item.id}-${index}`} className="w-28 shrink-0 sm:w-32 md:w-36">
+          <div key={`${item.id}-${index}`} className="tv-rail-item w-28 shrink-0 sm:w-32 md:w-36">
             <MediaCard item={item} />
           </div>
         ))}

@@ -17,6 +17,41 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Google TV / D-pad ("10-foot") mode — toggled by <TVMode> when the app runs
+   in the TV WebView (or with ?tv=1). Spatial navigation lives in
+   lib/tv/spatial-nav.ts; this just makes the focused element unmistakable from
+   the couch. scroll-margin keeps it clear of the sticky navbar when it scrolls
+   into view. */
+/* Scale the whole UI up for the couch. Bumping the root font-size enlarges all
+   rem-based text and spacing at once; the poster grid and rails switch to
+   size-based widths so a bigger scale yields fewer, larger posters instead of
+   the same tiny 8-up desktop grid. */
+html.tv {
+  font-size: 20px;
+}
+html.tv .tv-grid {
+  grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
+}
+html.tv .tv-rail-item {
+  width: 12rem;
+}
+
+html.tv a:focus,
+html.tv button:focus,
+html.tv input:focus,
+html.tv select:focus,
+html.tv textarea:focus,
+html.tv [tabindex]:focus {
+  outline: none;
+  border-radius: 0.6rem;
+  box-shadow:
+    0 0 0 3px #0a0e17,
+    0 0 0 6px #3b82f6;
+  position: relative;
+  z-index: 20;
+  scroll-margin: 6rem;
+}
+
 /* Hide scrollbars on horizontal rails while keeping scroll behaviour. */
 .no-scrollbar {
   -ms-overflow-style: none;

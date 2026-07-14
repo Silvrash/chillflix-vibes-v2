@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { Navbar } from "@/components/layout/Navbar";
 import { PWARegister } from "@/components/PWARegister";
+import { TVMode } from "@/components/TVMode";
 import { SITE_DESCRIPTION, SITE_NAME, SITE_OG_IMAGE, SITE_TAGLINE, SITE_URL } from "@/lib/seo";
 import { Providers } from "./providers";
 import "./globals.css";
@@ -71,6 +72,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </Providers>
         </NuqsAdapter>
         <PWARegister />
+        <TVMode />
       </body>
     </html>
   );

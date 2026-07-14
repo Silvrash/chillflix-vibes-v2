@@ -45,7 +45,7 @@ export function MediaGrid({ items, isLoading, isFetchingNextPage, hasNextPage, o
 
   return (
     <div>
-      <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 sm:gap-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8">
+      <div className="tv-grid grid grid-cols-3 gap-3 sm:grid-cols-4 sm:gap-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8">
         {items.map((item, index) => (
           <MediaCard key={`${item.id}-${index}`} item={item} />
         ))}
