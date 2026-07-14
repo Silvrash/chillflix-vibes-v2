@@ -92,13 +92,13 @@ export function FilterBar({ mediaType, animeOnly, genres, presets, filters, onCh
 
       <FilterModal open={open} activeCount={activeCount} showReset={showReset} onClose={() => setOpen(false)} onReset={reset}>
         <Section label="Quick picks" emoji="⚡">
-          <div className="flex flex-wrap gap-2">
-            {presets.map((p) => (
-              <Pill key={p.name} active={presetLabel === p.name} onClick={() => selectPreset(p.name)}>
-                {p.name}
-              </Pill>
-            ))}
-          </div>
+          <Select
+            value={presetLabel}
+            options={[{ label: CUSTOM_LABEL, value: CUSTOM_LABEL }, ...presets.map((p) => ({ label: p.name, value: p.name }))]}
+            onChange={(value) => {
+              if (value !== CUSTOM_LABEL) selectPreset(value);
+            }}
+          />
         </Section>
         <FilterControls
           mediaType={mediaType}
@@ -135,16 +135,30 @@ function FilterControls({
   update: (patch: Partial<FilterState>) => void;
   toggleGenre: (id: number) => void;
 }) {
+  const selectedGenres = genreOptions.filter((g) => filters.genres.includes(g.id));
+  const availableGenres = genreOptions.filter((g) => !filters.genres.includes(g.id));
+
   return (
     <>
       <Section label="Genres" emoji="🎬">
-        <div className="flex flex-wrap gap-2">
-          {genreOptions.map((genre) => (
-            <Pill key={genre.id} active={filters.genres.includes(genre.id)} onClick={() => toggleGenre(genre.id)}>
-              {genre.name}
-            </Pill>
-          ))}
-        </div>
+        <Select
+          value=""
+          options={[
+            { label: availableGenres.length ? "Add a genre…" : "All genres selected", value: "" },
+            ...availableGenres.map((genre) => ({ label: genre.name, value: genre.id })),
+          ]}
+          onChange={(value) => {
+            const id = Number(value);
+            if (id) toggleGenre(id);
+          }}
+        />
+        {selectedGenres.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {selectedGenres.map((genre) => (
+              <Chip key={genre.id} label={genre.name} onRemove={() => toggleGenre(genre.id)} />
+            ))}
+          </div>
+        )}
       </Section>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -331,23 +345,6 @@ function Section({ label, emoji, children }: { label: string; emoji?: string; ch
       </span>
       {children}
     </div>
-  );
-}
-
-function Pill({ active, onClick, children }: { active: boolean; onClick: () => void; children: ReactNode }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "rounded-full px-3.5 py-1.5 text-sm font-medium transition-all active:scale-95",
-        active
-          ? "bg-primary-dark text-white shadow-sm shadow-primary-dark/40"
-          : "bg-white/5 text-muted hover:bg-white/10 hover:text-white",
-      )}
-    >
-      {children}
-    </button>
   );
 }
 
