@@ -3,8 +3,8 @@
 import { MediaRail } from "@/components/media/MediaRail";
 import { Select } from "@/components/ui/Select";
 import { Spinner } from "@/components/ui/Spinner";
-import { getLastWatched, setLastWatched } from "@/lib/storage";
-import { STREAM_SERVERS, getAnimeServers, type StreamServer } from "@/lib/streaming/vidsrc";
+import { getLastWatched, getPreferredServer, setLastWatched, setPreferredServer } from "@/lib/storage";
+import { MOVIE_SERVERS, STREAM_SERVERS, getAnimeServers, type StreamServer } from "@/lib/streaming/vidsrc";
 import { getTMDBImageUrl } from "@/lib/tmdb/images";
 import {
   MediaType,
@@ -41,16 +41,24 @@ export function WatchView({ id, type, initialSeason, initialEpisode }: WatchView
   const [pendingEpisode, setPendingEpisode] = useState<number | "last" | null>(null);
   const [restored, setRestored] = useState(false);
 
-  // Restore the last-watched season/episode from localStorage on mount.
+  // Restore the last-watched season/episode and preferred player on mount.
   useEffect(() => {
     if (isTv) {
       const last = getLastWatched(type, id);
       if (last.season) setSeason(last.season);
       if (last.episode) setEpisode(last.episode);
     }
+    const savedServer = getPreferredServer();
+    if (savedServer !== undefined) setServerIndex(savedServer);
     setRestored(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Remember the player the user picks so it's preselected next time.
+  function selectServer(index: number) {
+    setServerIndex(index);
+    setPreferredServer(index);
+  }
 
   // Persist only after the restore has run — otherwise the default season/episode
   // would overwrite the saved value on mount before it's restored.
@@ -165,10 +173,15 @@ export function WatchView({ id, type, initialSeason, initialEpisode }: WatchView
     return () => window.removeEventListener("message", onPlayerMessage);
   }, [isTv, season, episode]);
 
-  // Anime leads with vidnest (Player 1, dropping vidsrc.to); everything else
-  // uses the standard lineup.
-  const servers = useMemo<StreamServer[]>(() => (isAnime ? getAnimeServers(anilistId) : STREAM_SERVERS), [isAnime, anilistId]);
-  const server = servers[Math.min(serverIndex, servers.length - 1)];
+  // Anime leads with vidnest (Player 1, dropping vidsrc.to); movies use the
+  // two-player lineup; other TV uses the full standard lineup.
+  const servers = useMemo<StreamServer[]>(
+    () => (isAnime ? getAnimeServers(anilistId) : isTv ? STREAM_SERVERS : MOVIE_SERVERS),
+    [isAnime, isTv, anilistId],
+  );
+  // A remembered index can exceed a shorter lineup — clamp it everywhere.
+  const activeServerIndex = Math.min(serverIndex, servers.length - 1);
+  const server = servers[activeServerIndex];
   // Hold the iframe until the AniList lookup settles, so anime doesn't briefly
   // load a fallback before switching to vidnest.
   const awaitingAnimeId = isAnime && animeId.isLoading;
@@ -199,7 +212,7 @@ export function WatchView({ id, type, initialSeason, initialEpisode }: WatchView
             )}
 
             <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-              <ServerTabs servers={servers} value={serverIndex} onChange={setServerIndex} />
+              <ServerTabs servers={servers} value={activeServerIndex} onChange={selectServer} />
               {isTv && (
                 <div className="flex items-center gap-2">
                   <EpisodeNavButton direction="prev" disabled={atFirstEpisode} onClick={goToPreviousEpisode} />

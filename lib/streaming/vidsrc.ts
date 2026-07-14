@@ -56,6 +56,9 @@ export const vidSrcTo: StreamServer = {
 
 export const STREAM_SERVERS: StreamServer[] = [vidLink, vidSrcMe, vidSrcTo];
 
+// Movies use the two most reliable players only (vidsrc.to is dropped here).
+export const MOVIE_SERVERS: StreamServer[] = [vidLink, vidSrcMe];
+
 /**
  * vidnest's anime player, keyed by AniList id with an explicit sub track. It
  * carries subbed sources the TMDB-based players often lack, so it's the primary
