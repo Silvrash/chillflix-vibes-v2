@@ -81,9 +81,5 @@ export function vidnestAnime(anilistId: number): StreamServer {
  */
 export function getAnimeServers(anilistId: number | null): StreamServer[] {
   if (!anilistId) return STREAM_SERVERS;
-  return [
-    vidnestAnime(anilistId),
-    { ...vidSrcMe, name: "Alternate Player" },
-    { ...vidLink, name: "Backup Player" },
-  ];
+  return [vidnestAnime(anilistId), { ...vidSrcMe, name: "Alternate Player" }, { ...vidLink, name: "Backup Player" }];
 }

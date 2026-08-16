@@ -60,8 +60,8 @@ export default function TvAppPage() {
               <span className="block text-primary">on the big screen</span>
             </h1>
             <p className="mt-4 max-w-lg text-muted">
-              A native app built for the remote — the D-pad moves a focus ring through posters and rows, so there is no
-              cursor to drag around. Continue watching, search, seasons and episodes, all a click away.
+              A native app built for the remote — the D-pad moves a focus ring through posters and rows, so there is no cursor to
+              drag around. Continue watching, search, seasons and episodes, all a click away.
             </p>
 
             <div className="mt-8 flex flex-wrap items-center gap-4">
@@ -101,7 +101,9 @@ export default function TvAppPage() {
 
       {/* Install steps */}
       <h2 className="mt-14 text-2xl font-bold">Installing on your TV</h2>
-      <p className="mt-2 text-muted">Downloading on this device? Move the file to the TV, or follow these steps on the TV itself.</p>
+      <p className="mt-2 text-muted">
+        Downloading on this device? Move the file to the TV, or follow these steps on the TV itself.
+      </p>
 
       <ol className="mt-6 grid gap-4 sm:grid-cols-3">
         {STEPS.map((step, index) => (
@@ -123,8 +125,8 @@ export default function TvAppPage() {
       </div>
 
       <p className="mt-8 text-sm text-muted">
-        The app is signed for sideloading and isn&apos;t distributed through the Play Store. Your TV may warn about
-        installing from an unknown source — that warning is expected for any app installed this way.
+        The app is signed for sideloading and isn&apos;t distributed through the Play Store. Your TV may warn about installing
+        from an unknown source — that warning is expected for any app installed this way.
       </p>
     </div>
   );

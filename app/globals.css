@@ -76,3 +76,28 @@ html.tv [tabindex]:focus {
 ::-webkit-scrollbar-thumb:hover {
   background: #2a384f;
 }
+
+/* Smart-TV browsers are often a long way behind: many ship a Chromium older
+   than 88, which is when `aspect-ratio` landed. Without it the poster and
+   backdrop boxes compute to zero height, and since the artwork inside them is
+   absolutely positioned to fill that box, every image renders at zero pixels —
+   the page looks like it "didn't load images" when in fact they downloaded
+   fine and were painted into nothing.
+
+   The padding-top trick reserves the same shape the old way. Percentages
+   resolve against the container's width, and an absolutely positioned child
+   sizes to the padding box, so `inset-0` / `h-full` still fill it. */
+@supports not (aspect-ratio: 1 / 1) {
+  .aspect-\[2\/3\],
+  .aspect-video {
+    height: 0;
+  }
+
+  .aspect-\[2\/3\] {
+    padding-top: 150%; /* 3 / 2 */
+  }
+
+  .aspect-video {
+    padding-top: 56.25%; /* 9 / 16 */
+  }
+}
