@@ -52,7 +52,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import org.mozilla.geckoview.AllowOrDeny
 import org.mozilla.geckoview.GeckoResult
-import org.mozilla.geckoview.GeckoRuntime
 import org.mozilla.geckoview.GeckoSession
 import org.mozilla.geckoview.GeckoSessionSettings
 import org.mozilla.geckoview.GeckoView
@@ -335,8 +334,7 @@ private fun EmbedWebView(
 ) {
     val context = LocalContext.current
 
-    // One runtime per process — creating a second one throws.
-    val runtime = remember { GeckoRuntime.getDefault(context.applicationContext) }
+    val runtime = remember { GeckoEngine.runtime(context) }
 
     val session = remember {
         GeckoSession(

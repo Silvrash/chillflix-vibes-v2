@@ -1,9 +1,11 @@
 package com.chillflixvibes.tv
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import com.chillflixvibes.tv.player.GeckoEngine
 import com.chillflixvibes.tv.ui.ChillFlixApp
 import com.chillflixvibes.tv.ui.theme.ChillFlixTheme
 
@@ -22,6 +24,12 @@ class MainActivity : ComponentActivity() {
         // hero gets the full 16:9 panel — anything less would crop the artwork.
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+        // Start the engine while the user is still browsing. Gecko takes a few
+        // seconds to come up on slow hardware, and paying that here means it is
+        // already warm when they press Play.
+        runCatching { GeckoEngine.runtime(this) }
+            .onFailure { Log.w("ChillFlix", "Gecko warm-up failed", it) }
+
         setContent {
             ChillFlixTheme {
                 ChillFlixApp()
