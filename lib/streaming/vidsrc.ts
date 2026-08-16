@@ -35,29 +35,30 @@ function vidlinkOpts(_autoplay?: boolean) {
 }
 
 export const vidLink: StreamServer = {
-  name: "Player 1",
+  name: "Alternate Player",
   getMovieLink: (tmdbId, opts) => `https://vidlink.pro/movie/${tmdbId}?${vidlinkOpts(opts?.autoplay)}`,
   getEpisodeLink: (tmdbId, season, episode, opts) =>
     `https://vidlink.pro/tv/${tmdbId}/${season}/${episode}?${vidlinkOpts(opts?.autoplay)}`,
 };
 
 export const vidSrcMe: StreamServer = {
-  name: "Player 2",
+  name: "Main Player",
   getMovieLink: (tmdbId) => `https://vidsrc-embed.ru/embed/movie?tmdb=${tmdbId}&ds_lang=${LANGUAGE}`,
   getEpisodeLink: (tmdbId, season, episode) =>
     `https://vidsrc-embed.ru/embed/tv?tmdb=${tmdbId}&season=${season}&episode=${episode}&ds_lang=${LANGUAGE}`,
 };
 
 export const vidSrcTo: StreamServer = {
-  name: "Player 3",
+  name: "Backup Player",
   getMovieLink: (tmdbId) => `https://vidsrc.to/embed/movie/${tmdbId}?ds_lang=${LANGUAGE}`,
   getEpisodeLink: (tmdbId, season, episode) => `https://vidsrc.to/embed/tv/${tmdbId}/${season}/${episode}?ds_lang=${LANGUAGE}`,
 };
 
-export const STREAM_SERVERS: StreamServer[] = [vidLink, vidSrcMe, vidSrcTo];
+export const STREAM_SERVERS: StreamServer[] = [vidSrcMe, vidLink, vidSrcTo];
 
 // Movies use the two most reliable players only (vidsrc.to is dropped here).
-export const MOVIE_SERVERS: StreamServer[] = [vidLink, vidSrcMe];
+// vidsrc-embed leads: it is currently the one that reliably serves a stream.
+export const MOVIE_SERVERS: StreamServer[] = [vidSrcMe, vidLink];
 
 /**
  * vidnest's anime player, keyed by AniList id with an explicit sub track. It
@@ -67,7 +68,7 @@ export const MOVIE_SERVERS: StreamServer[] = [vidLink, vidSrcMe];
  */
 export function vidnestAnime(anilistId: number): StreamServer {
   return {
-    name: "Player 1",
+    name: "Main Player",
     getMovieLink: () => `https://vidnest.fun/anime/${anilistId}/1/sub`,
     getEpisodeLink: (_tmdbId, _season, episode) => `https://vidnest.fun/anime/${anilistId}/${episode}/sub`,
   };
@@ -82,10 +83,7 @@ export function getAnimeServers(anilistId: number | null): StreamServer[] {
   if (!anilistId) return STREAM_SERVERS;
   return [
     vidnestAnime(anilistId),
-    { ...vidLink, name: "Player 2" },
-    {
-      ...vidSrcMe,
-      name: "Player 3",
-    },
+    { ...vidSrcMe, name: "Alternate Player" },
+    { ...vidLink, name: "Backup Player" },
   ];
 }

@@ -45,6 +45,20 @@ export function setLastWatched(type: MediaType | string, id: string | number, se
  */
 const PREFERRED_SERVER_KEY = "preferred-player";
 
+/**
+ * Playback state is keyed by *position* in the player lineup, so reordering
+ * that lineup silently repoints every saved preference at a different
+ * provider. Bump this whenever the lineup or the stored shape changes and the
+ * next visit clears the stale state instead of resuming against it.
+ */
+const SCHEMA_VERSION = "2";
+const SCHEMA_KEY = "storage-schema";
+
+if (typeof window !== "undefined" && window.localStorage.getItem(SCHEMA_KEY) !== SCHEMA_VERSION) {
+  window.localStorage.clear();
+  window.localStorage.setItem(SCHEMA_KEY, SCHEMA_VERSION);
+}
+
 export function getPreferredServer(): number | undefined {
   return read(PREFERRED_SERVER_KEY);
 }

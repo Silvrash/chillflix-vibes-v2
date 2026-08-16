@@ -61,6 +61,8 @@ fun BrowseScreen(
     section: Section,
     onOpen: (MediaType, Int) -> Unit,
     modifier: Modifier = Modifier,
+    /** Shelf to open on arrival, when the user came from a "See all" tile. */
+    initialPreset: String? = null,
     /** Space kept clear at the top for the floating nav bar. */
     topInset: Dp = 0.dp,
     /** Attached to this screen's root so the nav bar can send focus down into it. */
@@ -72,7 +74,9 @@ fun BrowseScreen(
     val repo = remember { TmdbRepository.get(context) }
     val presets = remember(section) { presetsFor(section) }
 
-    var presetIndex by remember(section) { mutableIntStateOf(0) }
+    var presetIndex by remember(section, initialPreset) {
+        mutableIntStateOf(presets.indexOfFirst { it.name == initialPreset }.coerceAtLeast(0))
+    }
     val preset = presets[presetIndex]
 
     val items = remember(section, presetIndex) { mutableStateListOf<MediaItem>() }

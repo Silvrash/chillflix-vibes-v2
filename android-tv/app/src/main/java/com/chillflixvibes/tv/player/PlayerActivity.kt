@@ -63,7 +63,7 @@ import com.chillflixvibes.tv.data.TmdbImage
 import com.chillflixvibes.tv.data.TmdbRepository
 import com.chillflixvibes.tv.data.WatchEntry
 import com.chillflixvibes.tv.data.WatchStore
-import com.chillflixvibes.tv.data.serversFor
+import com.chillflixvibes.tv.data.playersFor
 import com.chillflixvibes.tv.ui.components.FocusableCard
 import com.chillflixvibes.tv.ui.components.LoadState
 import com.chillflixvibes.tv.ui.components.Loading
@@ -197,19 +197,19 @@ private fun PlayerScreen(
     // Anime resolves to a different provider, so hold playback until the
     // AniList lookup settles rather than briefly loading the wrong player.
     val waitingForAnime = details?.isAnime == true && anilistState is LoadState.Loading
-    val servers = remember(details, anilistId) {
-        serversFor(type, details?.isAnime == true, anilistId)
+    val players = remember(details, anilistId) {
+        playersFor(type, details?.isAnime == true, anilistId)
     }
-    var serverIndex by remember { mutableIntStateOf(store.preferredServer) }
-    val activeIndex = serverIndex.coerceIn(0, servers.lastIndex)
-    val server = servers[activeIndex]
+    var preferredPlayer by remember { mutableStateOf(store.preferredPlayer) }
+    // An id that isn't in this lineup (anime has its own) falls back to first.
+    val activeIndex = players.indexOfFirst { it.id == preferredPlayer }.coerceAtLeast(0)
 
     // The app doesn't build provider URLs any more: it points the WebView at
     // the site's chrome-less `/embed` route, which hosts the same iframe the
     // web app uses. That page is served from the real origin over https, so
     // the provider sees the referrer, headers and page context it expects —
     // conditions a WebView-local page can't reproduce. The lineup below is
-    // only used for the "Player 1/2/3" labels; `server` is passed as an index.
+    // only used for the controls-panel labels; the choice travels as an index.
     val siteUrl = remember { context.getString(R.string.api_base_url).trimEnd('/') }
     val url = remember(siteUrl, type, id, season, episode, activeIndex, anilistId, isSeries) {
         buildString {
@@ -259,11 +259,11 @@ private fun PlayerScreen(
                 season = season,
                 episode = episode,
                 episodes = episodes,
-                serverNames = servers.map { it.name },
+                serverNames = players.map { it.label },
                 activeServer = activeIndex,
                 onServer = { index ->
-                    serverIndex = index
-                    store.preferredServer = index
+                    preferredPlayer = players[index].id
+                    store.preferredPlayer = players[index].id
                 },
                 onEpisode = { number ->
                     episode = number

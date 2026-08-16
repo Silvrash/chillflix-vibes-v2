@@ -9,6 +9,7 @@ const LINKS = [
   { href: "/movies", label: "Movies" },
   { href: "/tv", label: "TV Shows" },
   { href: "/anime", label: "Anime" },
+  { href: "/tv-app", label: "TV App" },
 ];
 
 export function Navbar() {
@@ -31,7 +32,9 @@ export function Navbar() {
 
         <nav className="flex shrink-0 items-center gap-1 sm:gap-2">
           {LINKS.map((link) => {
-            const active = pathname?.startsWith(link.href);
+            // Match on a path boundary, not a bare prefix — otherwise `/tv-app`
+            // lights up "TV Shows" because it starts with `/tv`.
+            const active = pathname === link.href || pathname?.startsWith(`${link.href}/`);
             return (
               <Link
                 key={link.href}

@@ -16,6 +16,16 @@ const nextConfig = {
         ],
       },
       {
+        // The global `nosniff` above means the APK has to be typed correctly or
+        // the browser refuses it; `attachment` stops Android TV browsers trying
+        // to render it instead of handing it to the package installer.
+        source: "/chillflixvibes-tv.apk",
+        headers: [
+          { key: "Content-Type", value: "application/vnd.android.package-archive" },
+          { key: "Content-Disposition", value: "attachment; filename=chillflixvibes-tv.apk" },
+        ],
+      },
+      {
         // Never cache the service worker, so a new version is picked up instantly.
         source: "/sw.js",
         headers: [

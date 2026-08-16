@@ -25,6 +25,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import android.net.Uri
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -53,6 +54,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.chillflixvibes.tv.data.MediaType
 import com.chillflixvibes.tv.data.Section
+import com.chillflixvibes.tv.data.sectionForPreset
 import com.chillflixvibes.tv.ui.browse.BrowseScreen
 import com.chillflixvibes.tv.ui.components.ScreenPadding
 import com.chillflixvibes.tv.ui.detail.DetailScreen
@@ -64,7 +66,7 @@ import com.chillflixvibes.tv.ui.theme.PrimaryDark
 
 private const val ROUTE_HOME = "home"
 private const val ROUTE_SEARCH = "search"
-private const val ROUTE_BROWSE = "browse/{section}"
+private const val ROUTE_BROWSE = "browse/{section}?preset={preset}"
 private const val ROUTE_DETAIL = "detail/{type}/{id}"
 
 /** Vertical space the floating nav bar occupies; screens inset their content by it. */
@@ -89,6 +91,13 @@ fun ChillFlixApp() {
         navController.navigate("detail/${type.slug}/$id")
     }
 
+    // "See all" on a shelf opens that shelf as a full grid, in whichever
+    // section owns it.
+    val openShelf: (String) -> Unit = { presetName ->
+        val section = sectionForPreset(presetName)
+        navController.navigate("browse/${section.slug}?preset=${Uri.encode(presetName)}")
+    }
+
     // The nav bar floats above the content rather than sitting in the same
     // column, and Compose's geometric focus search won't reliably cross that
     // gap — so the two directions are wired up explicitly. `contentFocus` is
@@ -104,7 +113,12 @@ fun ChillFlixApp() {
             modifier = Modifier.fillMaxSize(),
         ) {
             composable(ROUTE_HOME) {
-                HomeScreen(onOpen = openDetail, contentFocus = contentFocus, navFocus = navFocus)
+                HomeScreen(
+                    onOpen = openDetail,
+                    onSeeAll = openShelf,
+                    contentFocus = contentFocus,
+                    navFocus = navFocus,
+                )
             }
             composable(ROUTE_SEARCH) {
                 SearchScreen(
@@ -116,10 +130,17 @@ fun ChillFlixApp() {
             }
             composable(
                 ROUTE_BROWSE,
-                arguments = listOf(navArgument("section") { type = NavType.StringType }),
+                arguments = listOf(
+                    navArgument("section") { type = NavType.StringType },
+                    navArgument("preset") {
+                        type = NavType.StringType
+                        defaultValue = ""
+                    },
+                ),
             ) { entry ->
                 BrowseScreen(
                     section = Section.fromSlug(entry.arguments?.getString("section")),
+                    initialPreset = entry.arguments?.getString("preset")?.takeIf { it.isNotBlank() },
                     onOpen = openDetail,
                     topInset = NavBarHeight,
                     contentFocus = contentFocus,

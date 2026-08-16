@@ -37,6 +37,17 @@ class WatchStore(context: Context) {
     private val prefs = context.applicationContext.getSharedPreferences("watch", Context.MODE_PRIVATE)
     private val json = Json { ignoreUnknownKeys = true }
 
+    init {
+        // Locally stored state is keyed by *position* in the player lineup, so
+        // reordering the lineup silently repoints every saved preference at a
+        // different provider. Rather than migrate, drop it: bump SCHEMA
+        // whenever the lineup or the stored shape changes and the next launch
+        // starts clean.
+        if (prefs.getInt(SCHEMA, 0) != SCHEMA_VERSION) {
+            prefs.edit().clear().putInt(SCHEMA, SCHEMA_VERSION).apply()
+        }
+    }
+
     /** Season/episode the user last watched, defaulting to S1·E1. */
     fun lastWatched(type: MediaType, id: Int): Pair<Int, Int> =
         prefs.getInt(seasonKey(type, id), 1) to prefs.getInt(episodeKey(type, id), 1)
@@ -49,13 +60,13 @@ class WatchStore(context: Context) {
     fun hasProgress(type: MediaType, id: Int): Boolean = prefs.contains(seasonKey(type, id))
 
     /**
-     * Index of the player the user last picked. Stored globally — the
-     * "Player 1 / 2" labels line up across lineups — and clamped by the caller
-     * to the current lineup's length.
+     * The player the user last picked, stored by stable id rather than by
+     * position. An unset — or old, numeric — value falls back to the main
+     * player, which is what anyone upgrading should land on.
      */
-    var preferredServer: Int
-        get() = prefs.getInt(PREFERRED_SERVER, 0)
-        set(value) = prefs.edit().putInt(PREFERRED_SERVER, value).apply()
+    var preferredPlayer: String
+        get() = runCatching { prefs.getString(PREFERRED_SERVER, null) }.getOrNull() ?: PLAYER_MAIN
+        set(value) = prefs.edit().putString(PREFERRED_SERVER, value).apply()
 
     fun continueWatching(): List<WatchEntry> =
         runCatching { json.decodeFromString<List<WatchEntry>>(prefs.getString(CONTINUE, "[]") ?: "[]") }
@@ -70,15 +81,17 @@ class WatchStore(context: Context) {
         prefs.edit().putString(CONTINUE, json.encodeToString(updated)).apply()
     }
 
-    fun remove(type: MediaType, id: Int) {
-        val updated = continueWatching().filterNot { it.id == id && it.type == type.slug }
-        prefs.edit().putString(CONTINUE, json.encodeToString(updated)).apply()
-    }
+
 
     private fun seasonKey(type: MediaType, id: Int) = "${type.slug}-$id-season"
     private fun episodeKey(type: MediaType, id: Int) = "${type.slug}-$id-episode"
 
     companion object {
+        private const val SCHEMA = "schema"
+
+        /** Bump to wipe locally stored playback state on the next launch. */
+        const val SCHEMA_VERSION = 2
+
         private const val PREFERRED_SERVER = "preferred-player"
         private const val CONTINUE = "continue-watching"
         private const val MAX_CONTINUE = 20

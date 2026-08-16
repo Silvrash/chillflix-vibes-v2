@@ -76,6 +76,7 @@ import com.chillflixvibes.tv.ui.theme.Star
 @Composable
 fun HomeScreen(
     onOpen: (MediaType, Int) -> Unit,
+    onSeeAll: (String) -> Unit = {},
     modifier: Modifier = Modifier,
     /** Attached to this screen's root so the nav bar can send focus down into it. */
     contentFocus: FocusRequester = remember { FocusRequester() },
@@ -169,7 +170,7 @@ fun HomeScreen(
             }
 
             items(HOME_SHELVES.size, key = { HOME_SHELVES[it].name }) { index ->
-                PresetRow(preset = HOME_SHELVES[index], onOpen = onOpen)
+                PresetRow(preset = HOME_SHELVES[index], onOpen = onOpen, onSeeAll = onSeeAll)
             }
 
             item(key = "bottom-spacer") { Box(Modifier.height(40.dp)) }
@@ -178,7 +179,7 @@ fun HomeScreen(
 }
 
 @Composable
-private fun PresetRow(preset: Preset, onOpen: (MediaType, Int) -> Unit) {
+private fun PresetRow(preset: Preset, onOpen: (MediaType, Int) -> Unit, onSeeAll: (String) -> Unit) {
     val context = LocalContext.current
     val repo = remember { TmdbRepository.get(context) }
     val state = rememberLoad(preset.name) { repo.discover(preset.type, preset.filters).results }
@@ -189,6 +190,7 @@ private fun PresetRow(preset: Preset, onOpen: (MediaType, Int) -> Unit) {
             items = state.value,
             fallbackType = preset.type,
             onSelect = { item, type -> onOpen(type, item.id) },
+            onSeeAll = { onSeeAll(preset.name) },
         )
         LoadState.Loading -> RowPlaceholder()
         is LoadState.Failed -> Unit // a shelf that fails to load is simply left out

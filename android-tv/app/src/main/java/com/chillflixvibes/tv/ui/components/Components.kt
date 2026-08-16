@@ -303,6 +303,8 @@ fun MediaRow(
     onSelect: (MediaItem, MediaType) -> Unit,
     modifier: Modifier = Modifier,
     firstItemFocusRequester: FocusRequester? = null,
+    /** When set, the shelf ends in a tile that opens the full category. */
+    onSeeAll: (() -> Unit)? = null,
 ) {
     if (items.isEmpty()) return
 
@@ -327,30 +329,52 @@ fun MediaRow(
                     focusRequester = firstItemFocusRequester.takeIf { items.firstOrNull()?.id == item.id },
                 )
             }
+            if (onSeeAll != null) {
+                item(key = "see-all") { SeeAllCard(onClick = onSeeAll) }
+            }
         }
     }
 }
 
-/** "★ 8.4" badge, matching the web app's rating pill. */
+/**
+ * Closes a shelf with a way into the full category — the TV convention, since
+ * holding Right to the end of a row is how you discover there is more.
+ */
 @Composable
-fun RatingBadge(rating: Double, modifier: Modifier = Modifier) {
-    if (rating <= 0.0) return
-    Row(
-        modifier
-            .clip(RoundedCornerShape(6.dp))
-            .background(Color.Black.copy(alpha = 0.6f))
-            .padding(horizontal = 8.dp, vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
+private fun SeeAllCard(onClick: () -> Unit) {
+    var focused by remember { mutableStateOf(false) }
+    Column(
+        Modifier
+            .width(PosterWidth)
+            .onFocusChanged { focused = it.isFocused }
+            .clickable(onClick = onClick)
+            .padding(bottom = 14.dp),
     ) {
-        Box(Modifier.size(8.dp).clip(CircleShape).background(Star))
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .aspectRatio(2f / 3f)
+                .clip(CardShape)
+                .background(if (focused) Primary else Surface)
+                .border(3.dp, if (focused) Color.White else Color.Transparent, CardShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                "See all  \u203A",
+                style = MaterialTheme.typography.titleMedium,
+                color = if (focused) Color.White else Muted,
+            )
+        }
         Text(
-            " " + String.format("%.1f", rating),
+            "Browse the full list",
             style = MaterialTheme.typography.labelMedium,
-            color = Color.White,
-            fontWeight = FontWeight.Bold,
+            color = if (focused) Color.White else Muted,
+            maxLines = 1,
+            modifier = Modifier.padding(top = 8.dp),
         )
     }
 }
+
 
 /** Non-interactive placeholder used while a row's data is still in flight. */
 @Composable
@@ -374,8 +398,3 @@ suspend fun FocusRequester.requestFocusWhenReady(attempts: Int = 30) {
     }
 }
 
-/** A focusable spacer that can take initial focus without showing anything. */
-@Composable
-fun FocusAnchor(focusRequester: FocusRequester, modifier: Modifier = Modifier) {
-    Box(modifier.size(1.dp).focusRequester(focusRequester).focusable())
-}

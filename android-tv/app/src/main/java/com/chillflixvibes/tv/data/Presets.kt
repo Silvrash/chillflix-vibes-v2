@@ -246,6 +246,10 @@ val HOME_SHELVES: List<Preset> = buildList {
     }
 }
 
+/** Which section's grid contains [presetName], for "See all" navigation. */
+fun sectionForPreset(presetName: String): Section =
+    Section.entries.firstOrNull { section -> presetsFor(section).any { it.name == presetName } } ?: Section.MOVIES
+
 fun presetsFor(section: Section): List<Preset> = when (section) {
     Section.MOVIES -> MOVIE_PRESETS
     Section.TV -> TV_PRESETS
