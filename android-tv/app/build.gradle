@@ -17,6 +17,12 @@ android {
         targetSdk 34
         versionCode 2
         versionName '2.0'
+
+        ndk {
+            // The target TV is 32-bit ARM. Shipping only its ABI keeps the
+            // bundled engine to one copy instead of four.
+            abiFilters 'armeabi-v7a'
+        }
     }
 
     buildFeatures {
@@ -63,6 +69,10 @@ dependencies {
 
     implementation 'io.coil-kt:coil-compose:2.7.0'
     implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+
+    // Ships its own Gecko engine, so playback no longer depends on the
+    // device's system WebView (Chromium 51 on the target TV).
+    implementation 'org.mozilla.geckoview:geckoview:115.0.20230726201356'
     implementation 'org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3'
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1'
 }

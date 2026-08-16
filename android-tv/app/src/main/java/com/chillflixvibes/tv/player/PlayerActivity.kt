@@ -1,6 +1,5 @@
 package com.chillflixvibes.tv.player
 
-import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -12,11 +11,6 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
-import android.webkit.WebChromeClient
-import android.webkit.WebResourceRequest
-import android.webkit.WebSettings
-import android.webkit.WebView
-import android.webkit.WebViewClient
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
@@ -56,6 +50,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import org.mozilla.geckoview.AllowOrDeny
+import org.mozilla.geckoview.GeckoResult
+import org.mozilla.geckoview.GeckoRuntime
+import org.mozilla.geckoview.GeckoSession
+import org.mozilla.geckoview.GeckoSessionSettings
+import org.mozilla.geckoview.GeckoView
 import com.chillflixvibes.tv.R
 import com.chillflixvibes.tv.data.Episode
 import com.chillflixvibes.tv.data.MediaType
@@ -145,6 +145,7 @@ private fun PlayerScreen(
     var season by remember { mutableIntStateOf(initialSeason) }
     var episode by remember { mutableIntStateOf(initialEpisode) }
     var overlayVisible by remember { mutableStateOf(false) }
+    var surface by remember { mutableStateOf<View?>(null) }
     var showHint by remember { mutableStateOf(true) }
 
     // Stepping back past episode 1 lands on the previous season's finale once
@@ -211,13 +212,22 @@ private fun PlayerScreen(
     // conditions a WebView-local page can't reproduce. The lineup below is
     // only used for the controls-panel labels; the choice travels as an index.
     val siteUrl = remember { context.getString(R.string.api_base_url).trimEnd('/') }
-    val url = remember(siteUrl, type, id, season, episode, activeIndex, anilistId, isSeries) {
-        buildString {
-            append("$siteUrl/embed/${type.slug}/$id?server=$activeIndex")
-            if (isSeries) append("&season=$season&episode=$episode")
-            if (anilistId != null) append("&anilist=$anilistId")
+    var useProxy by remember { mutableStateOf(store.useProxy) }
+    val player = players[activeIndex]
+    val url = remember(siteUrl, type, id, season, episode, activeIndex, anilistId, isSeries, useProxy, player) {
+        if (useProxy) {
+            buildString {
+                // Selected by stable id; `server` stays for older site deploys.
+                append("$siteUrl/embed/${type.slug}/$id?player=${player.id}&server=$activeIndex")
+                if (isSeries) append("&season=$season&episode=$episode")
+                if (anilistId != null) append("&anilist=$anilistId")
+            }
+        } else {
+            // Straight to the provider: nothing of ours has to run first.
+            if (isSeries) player.episodeUrl(id, season, episode) else player.movieUrl(id)
         }
     }
+    LaunchedEffect(url) { Log.i(PlayerActivity.TAG, "loading $url") }
 
     BackHandler {
         if (overlayVisible) onExit() else overlayVisible = true
@@ -230,6 +240,7 @@ private fun PlayerScreen(
             EmbedWebView(
                 pageUrl = url,
                 focusable = !overlayVisible,
+                onSurfaceReady = { surface = it },
                 modifier = Modifier.fillMaxSize(),
             )
         }
@@ -261,6 +272,14 @@ private fun PlayerScreen(
                 episodes = episodes,
                 serverNames = players.map { it.label },
                 activeServer = activeIndex,
+                onPlayPause = { surface?.tapCentre() },
+                onSeekBack = { repeat(3) { surface?.sendKey(KeyEvent.KEYCODE_DPAD_LEFT) } },
+                onSeekForward = { repeat(3) { surface?.sendKey(KeyEvent.KEYCODE_DPAD_RIGHT) } },
+                useProxy = useProxy,
+                onToggleProxy = {
+                    useProxy = !useProxy
+                    store.useProxy = useProxy
+                },
                 onServer = { index ->
                     preferredPlayer = players[index].id
                     store.preferredPlayer = players[index].id
@@ -296,173 +315,111 @@ private fun PlayerScreen(
 }
 
 /**
- * Hosts the embed the same way the website does: inside an `<iframe>` on a page
- * served from our own origin, with `referrerpolicy="origin"` and the same
- * `allow` list as `components/player/Player.tsx`.
+ * The playback surface, backed by **GeckoView** rather than the system WebView.
  *
- * This matters — loading a provider's embed as the *top-level* document is a
- * different environment from the one it is built for: it sees itself unframed
- * and gets a different (or absent) referrer, and the players respond by serving
- * ads or nothing at all instead of the stream. Wrapping it restores the
- * conditions the provider expects.
+ * The target hardware ships Chromium 51 (2016) as its system WebView, which
+ * cannot parse the JavaScript the site or any of the providers serve — the page
+ * dies on a SyntaxError before a player exists. `android.webkit.WebView` always
+ * uses that system engine, so no setting on our side can fix it. GeckoView
+ * bundles Mozilla's engine inside the APK instead, which also means it carries
+ * its own root-CA store and sidesteps the device's 2016 trust anchors.
  *
- * The wrapper also gives us a clean security boundary: the player and its ads
- * live in the frame, so *any* top-level navigation is an ad trying to escape,
- * and gets refused. A stray tab is close to unrecoverable with a remote.
+ * It loads the site's `/embed` route, exactly as before.
  */
-@SuppressLint("SetJavaScriptEnabled")
 @Composable
 private fun EmbedWebView(
     pageUrl: String,
     focusable: Boolean,
     modifier: Modifier = Modifier,
+    onSurfaceReady: (View?) -> Unit = {},
 ) {
     val context = LocalContext.current
-    // The page is served under the site's own origin so the iframe's
-    // `referrerpolicy="origin"` sends the provider the same referrer the web
-    // app does.
-    val siteUrl = context.getString(R.string.api_base_url).trimEnd('/') + "/"
-    val siteHost = remember(siteUrl) { Uri.parse(siteUrl).host }
-    var customView by remember { mutableStateOf<View?>(null) }
 
-    val webView = remember {
-        WebView(context).apply {
-            with(settings) {
-                javaScriptEnabled = true
-                domStorageEnabled = true
-                // Playback must start without a tap — there isn't one on a TV.
-                mediaPlaybackRequiresUserGesture = false
-                // Let `window.open()` succeed. These players check that their
-                // pop-under actually opened and refuse to serve a stream when
-                // it didn't, so refusing outright costs us playback — the
-                // window is granted below, then thrown away unseen.
-                javaScriptCanOpenWindowsAutomatically = true
-                setSupportMultipleWindows(true)
-                loadWithOverviewMode = true
-                useWideViewPort = true
-                cacheMode = WebSettings.LOAD_DEFAULT
-                // Embed players routinely mix http sub-resources into an https
-                // page; refusing them just yields a black frame.
-                mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
-                // A WebView announces itself with "; wv" in the User-Agent.
-                // The providers front their CDNs with Cloudflare and bot
-                // detection (Adscore), which treat that marker differently
-                // from a real browser — and the resulting 403 on the manifest
-                // surfaces as a CORS error and a black screen. Presenting the
-                // same UA string minus the marker is what the site itself
-                // sends from the TV's browser.
-                userAgentString = userAgentString.replace("; wv", "")
-            }
-            setBackgroundColor(android.graphics.Color.BLACK)
+    // One runtime per process — creating a second one throws.
+    val runtime = remember { GeckoRuntime.getDefault(context.applicationContext) }
 
-            // The embedded players are built for a mouse: their big centre
-            // Play button (and play/pause toggle) responds to a click, and a
-            // D-pad produces key events, not clicks — which is precisely why
-            // watching on a TV browser meant dragging a cursor around. OK on
-            // the remote is therefore translated into a tap at the centre of
-            // the player, where that button lives.
-            setOnKeyListener { view, keyCode, event ->
-                val isSelect = keyCode == KeyEvent.KEYCODE_DPAD_CENTER ||
-                    keyCode == KeyEvent.KEYCODE_ENTER ||
-                    keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER
-                if (isSelect && event.action == KeyEvent.ACTION_UP) {
-                    (view as WebView).tapCentre()
-                    true
-                } else {
-                    isSelect // swallow the matching DOWN so the page sees one event
-                }
-            }
-
-            webViewClient = object : WebViewClient() {
-                override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
-                    // Sub-frames and sub-resources are the player's business.
-                    if (!request.isForMainFrame) return false
-                    // The top-level document is our own /embed page; the
-                    // provider lives in its iframe. So anything trying to
-                    // replace the page itself is an ad escaping.
-                    if (request.url.host == siteHost) return false
-                    // Ads now get their own off-screen window via
-                    // onCreateWindow, so anything still trying to replace the
-                    // page itself is a redirect we don't want on a TV.
-                    Log.i(PlayerActivity.TAG, "blocked top-level navigation: ${request.url}")
-                    return true
-                }
-
-                override fun onReceivedError(
-                    view: WebView,
-                    request: WebResourceRequest,
-                    error: android.webkit.WebResourceError,
-                ) {
-                    if (request.isForMainFrame) {
-                        Log.w(PlayerActivity.TAG, "load failed ${request.url}: ${error.description}")
+    val session = remember {
+        GeckoSession(
+            GeckoSessionSettings.Builder()
+                // The providers gate on looking like a real browser; the
+                // default GeckoView UA already does, unlike a WebView's "wv".
+                .usePrivateMode(false)
+                .allowJavascript(true)
+                .build(),
+        ).apply {
+            open(runtime)
+            navigationDelegate = object : GeckoSession.NavigationDelegate {
+                override fun onLoadRequest(
+                    session: GeckoSession,
+                    request: GeckoSession.NavigationDelegate.LoadRequest,
+                ): GeckoResult<AllowOrDeny> {
+                    // Ads try to replace the whole page; the player lives in a
+                    // frame, so only top-level navigation is worth refusing.
+                    if (!request.isDirectNavigation && request.target ==
+                        GeckoSession.NavigationDelegate.TARGET_WINDOW_NEW
+                    ) {
+                        Log.i(PlayerActivity.TAG, "blocked popup: ${request.uri}")
+                        return GeckoResult.deny()
                     }
+                    return GeckoResult.allow()
                 }
             }
-
-            webChromeClient = object : WebChromeClient() {
-                /**
-                 * Pop-unders get a real, working window — just one that is
-                 * never attached to the view hierarchy, so it loads out of
-                 * sight and is destroyed shortly after. The page's check
-                 * passes, nothing lands on the TV screen, and there is no
-                 * stray tab for the remote to get lost in.
-                 */
-                override fun onCreateWindow(
-                    view: WebView,
-                    isDialog: Boolean,
-                    isUserGesture: Boolean,
-                    resultMsg: android.os.Message,
-                ): Boolean {
-                    val sink = WebView(view.context).apply {
-                        settings.javaScriptEnabled = true
-                        webViewClient = WebViewClient()
-                    }
-                    (resultMsg.obj as WebView.WebViewTransport).webView = sink
-                    resultMsg.sendToTarget()
-                    // Long enough for the ad network to register the open.
-                    sink.postDelayed({ sink.destroy() }, 15_000)
-                    Log.i(PlayerActivity.TAG, "pop-under opened off-screen")
-                    return true
-                }
-
-                // jwplayer's fullscreen button hands us a view to host.
-                override fun onShowCustomView(view: View, callback: CustomViewCallback) {
-                    val root = rootView as? ViewGroup ?: return
-                    customView?.let { root.removeView(it) }
-                    customView = view
-                    root.addView(
-                        view,
-                        ViewGroup.LayoutParams(
-                            ViewGroup.LayoutParams.MATCH_PARENT,
-                            ViewGroup.LayoutParams.MATCH_PARENT,
-                        ),
-                    )
-                }
-
-                override fun onHideCustomView() {
-                    val root = rootView as? ViewGroup
-                    customView?.let { root?.removeView(it) }
-                    customView = null
-                }
-            }
+            contentDelegate = object : GeckoSession.ContentDelegate {}
         }
     }
 
-    LaunchedEffect(pageUrl) { webView.loadUrl(pageUrl) }
+    LaunchedEffect(pageUrl) {
+        Log.i(PlayerActivity.TAG, "gecko loading $pageUrl")
+        session.loadUri(pageUrl)
+    }
 
     DisposableEffect(Unit) {
         onDispose {
-            webView.loadUrl("about:blank")
-            webView.destroy()
+            onSurfaceReady(null)
+            session.close()
+        }
+    }
+
+    var view by remember { mutableStateOf<GeckoView?>(null) }
+
+    // Allowing autoplay only helps the <video> element. These providers also
+    // gate playback behind their own click-to-play overlay, which is a DOM
+    // button — no gesture, no film. So once the page has had a moment to lay
+    // itself out, press it: a synthetic tap in the middle, where that button
+    // sits. Harmless if playback already started, since the same spot toggles
+    // play/pause and this runs once per load.
+    LaunchedEffect(pageUrl) {
+        delay(4_000)
+        view?.let {
+            Log.i(PlayerActivity.TAG, "auto-play tap")
+            it.tapCentre()
         }
     }
 
     AndroidView(
-        factory = { webView },
+        factory = { ctx ->
+            GeckoView(ctx).apply {
+                setSession(session)
+                isFocusableInTouchMode = true
+                // OK on the remote is a click in the middle of the player.
+                setOnKeyListener { v, keyCode, event ->
+                    val isSelect = keyCode == KeyEvent.KEYCODE_DPAD_CENTER ||
+                        keyCode == KeyEvent.KEYCODE_ENTER ||
+                        keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER
+                    if (isSelect && event.action == KeyEvent.ACTION_UP) {
+                        v.tapCentre()
+                        true
+                    } else {
+                        isSelect
+                    }
+                }
+                view = this
+                onSurfaceReady(this)
+            }
+        },
         modifier = modifier,
         update = { view ->
-            // While the controls panel is up, the D-pad belongs to it, not to
-            // the page underneath.
+            // While the controls panel is up, the D-pad belongs to it.
             view.isFocusable = focusable
             view.isFocusableInTouchMode = focusable
             if (!focusable) view.clearFocus()
@@ -470,8 +427,20 @@ private fun EmbedWebView(
     )
 }
 
+/**
+ * Sends a key to the page. The embedded players bind the shortcuts a desktop
+ * browser would — arrows to seek, space to toggle — and a synthesised event is
+ * indistinguishable from a real keypress, which is how we drive a player whose
+ * DOM we can't reach across origins.
+ */
+private fun View.sendKey(keyCode: Int) {
+    val now = SystemClock.uptimeMillis()
+    dispatchKeyEvent(KeyEvent(now, now, KeyEvent.ACTION_DOWN, keyCode, 0))
+    dispatchKeyEvent(KeyEvent(now, now + 40, KeyEvent.ACTION_UP, keyCode, 0))
+}
+
 /** Synthesises a click in the middle of the player, where its controls sit. */
-private fun WebView.tapCentre() {
+private fun View.tapCentre() {
     val x = width / 2f
     val y = height / 2f
     val now = SystemClock.uptimeMillis()
@@ -492,6 +461,11 @@ private fun ControlsPanel(
     episodes: List<Episode>,
     serverNames: List<String>,
     activeServer: Int,
+    onPlayPause: () -> Unit,
+    onSeekBack: () -> Unit,
+    onSeekForward: () -> Unit,
+    useProxy: Boolean,
+    onToggleProxy: () -> Unit,
     onServer: (Int) -> Unit,
     onEpisode: (Int) -> Unit,
     onPrevious: () -> Unit,
@@ -525,12 +499,23 @@ private fun ControlsPanel(
             )
         }
 
+        // Transport first: it's what the panel is opened for.
         Row(
             Modifier.padding(top = 14.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            TvButton("Resume", onClick = onResume, focusRequester = firstControl)
+            TvButton("⏪  Back", onClick = onSeekBack, filled = false)
+            TvButton("⏯   Play / Pause", onClick = onPlayPause, focusRequester = firstControl)
+            TvButton("Forward  ⏩", onClick = onSeekForward, filled = false)
+        }
+
+        Row(
+            Modifier.padding(top = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            TvButton("Back to film", onClick = onResume, filled = false)
             if (isSeries) {
                 TvButton("◀  Previous", onClick = onPrevious, filled = false)
                 TvButton("Next  ▶", onClick = onNext, filled = false)
@@ -548,6 +533,13 @@ private fun ControlsPanel(
             serverNames.forEachIndexed { index, name ->
                 TvChip(name, selected = index == activeServer, onClick = { onServer(index) })
             }
+            // Escape hatch for old WebViews: skip our page and load the
+            // provider as the top-level document.
+            TvChip(
+                if (useProxy) "Route: via site" else "Route: direct",
+                selected = !useProxy,
+                onClick = onToggleProxy,
+            )
         }
 
         if (isSeries && episodes.isNotEmpty()) {

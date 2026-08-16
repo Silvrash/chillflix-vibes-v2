@@ -68,6 +68,15 @@ class WatchStore(context: Context) {
         get() = runCatching { prefs.getString(PREFERRED_SERVER, null) }.getOrNull() ?: PLAYER_MAIN
         set(value) = prefs.edit().putString(PREFERRED_SERVER, value).apply()
 
+    /**
+     * Whether playback goes through the site's `/embed` page or loads the
+     * provider directly. Old WebViews may fail on our page's scripts before the
+     * iframe exists, so being able to bypass it on the device is worth a toggle.
+     */
+    var useProxy: Boolean
+        get() = prefs.getBoolean(USE_PROXY, true)
+        set(value) = prefs.edit().putBoolean(USE_PROXY, value).apply()
+
     fun continueWatching(): List<WatchEntry> =
         runCatching { json.decodeFromString<List<WatchEntry>>(prefs.getString(CONTINUE, "[]") ?: "[]") }
             .getOrDefault(emptyList())
@@ -93,6 +102,7 @@ class WatchStore(context: Context) {
         const val SCHEMA_VERSION = 2
 
         private const val PREFERRED_SERVER = "preferred-player"
+        private const val USE_PROXY = "use-proxy"
         private const val CONTINUE = "continue-watching"
         private const val MAX_CONTINUE = 20
     }

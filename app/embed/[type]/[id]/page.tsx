@@ -17,12 +17,17 @@ import { MediaType } from "@/lib/tmdb/queries";
  */
 export const dynamic = "force-dynamic";
 
+/** Player ids, in lineup order. Mirrors `data/Streams.kt` in the TV app. */
+const PLAYER_IDS = ["main", "alternate", "backup"];
+
 interface EmbedPageProps {
   params: { type: string; id: string };
   searchParams: {
     season?: string;
     episode?: string;
-    /** Index into the player lineup, matching the app's "Player 1/2/3". */
+    /** Stable player id — "main", "alternate" or "backup". Preferred. */
+    player?: string;
+    /** Legacy: index into the player lineup. Kept so older builds keep working. */
     server?: string;
     /** AniList id, when the caller already knows the title is anime. */
     anilist?: string;
@@ -40,7 +45,12 @@ export default function EmbedPage({ params, searchParams }: EmbedPageProps) {
   // two most reliable players, other TV gets the full list.
   const servers = anilistId ? getAnimeServers(anilistId) : type === MediaType.tv ? STREAM_SERVERS : MOVIE_SERVERS;
 
-  const requested = parseInt(searchParams.server ?? "0", 10) || 0;
+  // Lineups are ordered main → alternate → backup, so an id maps to a
+  // position. Selecting by id rather than by index means the two sides can't
+  // drift apart when the lineup is reordered: `main` is the main player here
+  // and in the app, whatever position it happens to occupy.
+  const byId = searchParams.player ? PLAYER_IDS.indexOf(searchParams.player) : -1;
+  const requested = byId >= 0 ? byId : parseInt(searchParams.server ?? "0", 10) || 0;
   const server = servers[Math.min(Math.max(requested, 0), servers.length - 1)];
 
   const src =
