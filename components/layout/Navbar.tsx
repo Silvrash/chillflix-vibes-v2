@@ -14,6 +14,10 @@ const LINKS = [
 export function Navbar() {
   const pathname = usePathname();
 
+  // `/embed` is the chrome-less player the TV app loads: the page is the
+  // player and nothing else.
+  if (pathname?.startsWith("/embed")) return null;
+
   return (
     <header className="sticky top-0 z-50 border-b border-white/5 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="mx-auto flex h-16 max-w-[1600px] items-center gap-3 px-4 sm:gap-8 sm:px-6 lg:px-10">
