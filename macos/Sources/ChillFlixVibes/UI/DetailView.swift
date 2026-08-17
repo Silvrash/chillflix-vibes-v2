@@ -8,7 +8,7 @@ struct DetailView: View {
     @State private var recommendations: [MediaItem] = []
     @State private var episodes: [Episode] = []
     @State private var season = 1
-    @State private var playing: PlayRequest?
+    @Environment(\.openWindow) private var openWindow
 
     var body: some View {
         ScrollView {
@@ -42,12 +42,6 @@ struct DetailView: View {
             guard type == .tv else { return }
             episodes = (try? await TmdbClient.shared.season(tvId: id, number: season))?.episodes ?? []
         }
-        .sheet(item: $playing) { request in
-            PlayerWindow(type: type, id: id, title: details?.displayTitle ?? "",
-                         season: request.season, episode: request.episode,
-                         isAnime: details?.isAnime ?? false,
-                         posterPath: details?.posterPath, backdropPath: details?.backdropPath)
-        }
     }
 
     private func header(_ details: MediaDetails) -> some View {
@@ -73,7 +67,7 @@ struct DetailView: View {
                 }
                 Button {
                     let last = WatchStore.shared.lastWatched(type, id)
-                    playing = PlayRequest(season: last.season, episode: last.episode)
+                    play(season: last.season, episode: last.episode)
                 } label: {
                     Label(resumeLabel, systemImage: "play.fill")
                         .padding(.horizontal, 8).padding(.vertical, 4)
@@ -83,6 +77,14 @@ struct DetailView: View {
             .padding(28)
         }
         .frame(height: 400)
+    }
+
+    private func play(season: Int, episode: Int) {
+        openWindow(id: "player", value: PlaybackTarget(
+            type: type, id: id, title: details?.displayTitle ?? "",
+            season: season, episode: episode, isAnime: details?.isAnime ?? false,
+            posterPath: details?.posterPath, backdropPath: details?.backdropPath
+        ))
     }
 
     /// "Resume S2 · E4" when they've started it before, "Play" otherwise.
@@ -126,7 +128,7 @@ struct DetailView: View {
                 HStack(alignment: .top, spacing: 14) {
                     ForEach(episodes) { episode in
                         Button {
-                            playing = PlayRequest(season: season, episode: episode.episodeNumber)
+                            play(season: season, episode: episode.episodeNumber)
                         } label: {
                             VStack(alignment: .leading, spacing: 6) {
                                 AsyncImage(url: TmdbImage.url(episode.stillPath, size: "w300")) { image in
@@ -171,8 +173,3 @@ struct DetailView: View {
     }
 }
 
-struct PlayRequest: Identifiable {
-    let season: Int
-    let episode: Int
-    var id: String { "\(season)-\(episode)" }
-}

@@ -10,6 +10,18 @@ struct ChillFlixVibesApp: App {
         }
         .windowStyle(.hiddenTitleBar)
         .commands { CommandGroup(replacing: .newItem) {} }
+
+        // Playback gets a window of its own rather than a sheet: it can be
+        // resized, moved to another display, and taken fullscreen with the
+        // green button or ⌃⌘F, which is what people expect of a video window
+        // on a Mac.
+        WindowGroup(id: "player", for: PlaybackTarget.self) { $target in
+            if let target {
+                PlayerWindow(target: target)
+                    .preferredColorScheme(.dark)
+            }
+        }
+        .defaultSize(width: 1180, height: 720)
     }
 }
 

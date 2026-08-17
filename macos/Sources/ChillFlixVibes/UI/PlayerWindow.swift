@@ -11,17 +11,28 @@ import WebKit
 /// Unlike Android, there is no engine problem to work around here: WKWebView is
 /// current Safari, and a Mac has a pointer, so the player's own controls are
 /// directly usable.
-struct PlayerWindow: View {
-    let type: MediaType
-    let id: Int
-    let title: String
+/// What to play. `WindowGroup(for:)` needs a Codable value, and carrying the
+/// whole request means the window can be restored by the system.
+struct PlaybackTarget: Codable, Hashable, Identifiable {
+    var type: MediaType
+    var id: Int
+    var title: String
     var season: Int = 1
     var episode: Int = 1
     var isAnime: Bool = false
     var posterPath: String?
     var backdropPath: String?
+}
 
-    @Environment(\.dismiss) private var dismiss
+struct PlayerWindow: View {
+    let target: PlaybackTarget
+
+    private var type: MediaType { target.type }
+    private var id: Int { target.id }
+    private var title: String { target.title }
+    private var season: Int { target.season }
+    private var episode: Int { target.episode }
+    private var isAnime: Bool { target.isAnime }
     @State private var player = playerMain
     @State private var anilistId: Int?
     @State private var resolved = false
@@ -41,7 +52,6 @@ struct PlayerWindow: View {
                 }
                 .pickerStyle(.segmented)
                 .frame(width: 320)
-                Button("Done") { dismiss() }
             }
             .padding(12)
             .background(Palette.surface)
@@ -70,7 +80,7 @@ struct PlayerWindow: View {
             WatchStore.shared.record(
                 WatchEntry(
                     id: id, type: type.rawValue, title: title,
-                    posterPath: posterPath, backdropPath: backdropPath,
+                    posterPath: target.posterPath, backdropPath: target.backdropPath,
                     season: season, episode: episode
                 )
             )
@@ -83,6 +93,8 @@ private struct WebPlayer: NSViewRepresentable {
 
     func makeNSView(context: Context) -> WKWebView {
         let config = WKWebViewConfiguration()
+        // Lets the player's own fullscreen button work, on top of the window's.
+        config.preferences.isElementFullscreenEnabled = true
         // Playback should start without a click; on the web the page is built
         // to autoplay.
         config.mediaTypesRequiringUserActionForPlayback = []
