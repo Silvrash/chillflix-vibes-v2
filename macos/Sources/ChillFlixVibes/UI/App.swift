@@ -11,17 +11,6 @@ struct ChillFlixVibesApp: App {
         .windowStyle(.hiddenTitleBar)
         .commands { CommandGroup(replacing: .newItem) {} }
 
-        // Playback gets a window of its own rather than a sheet: it can be
-        // resized, moved to another display, and taken fullscreen with the
-        // green button or ⌃⌘F, which is what people expect of a video window
-        // on a Mac.
-        WindowGroup(id: "player", for: PlaybackTarget.self) { $target in
-            if let target {
-                PlayerWindow(target: target)
-                    .preferredColorScheme(.dark)
-            }
-        }
-        .defaultSize(width: 1180, height: 720)
     }
 }
 
@@ -39,6 +28,7 @@ enum Palette {
 /// One destination, so navigation state stays in a single place.
 enum Route: Hashable {
     case detail(MediaType, Int)
+    case play(PlaybackTarget)
 }
 
 /// Sidebar destinations. Search sits alongside the browse sections rather than
@@ -77,6 +67,7 @@ struct ContentView: View {
                 .navigationDestination(for: Route.self) { route in
                     switch route {
                     case let .detail(type, id): DetailView(type: type, id: id)
+                    case let .play(target): PlayerWindow(target: target)
                     }
                 }
             }

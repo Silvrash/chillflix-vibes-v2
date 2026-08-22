@@ -34,6 +34,35 @@ interface EmbedPageProps {
   };
 }
 
+/**
+ * Hands keyboard focus to the player frame, and keeps trying.
+ *
+ * A remote emits key events, and the player only answers them when something
+ * inside the page holds focus. In a browser a click arranges that; in a TV app
+ * there is no pointer and nothing clicks, so the D-pad appears dead — the
+ * player's own play/pause and seek controls can never be reached.
+ *
+ * The frame is swapped in after the provider's scripts run, so one call on load
+ * lands too early; this retries briefly and again whenever the page is shown.
+ */
+const FOCUS_PLAYER_FRAME = `
+  (function () {
+    function focusFrame() {
+      var frame = document.querySelector('iframe');
+      if (frame) { try { frame.focus(); } catch (e) {} }
+    }
+    var attempts = 0;
+    var timer = setInterval(function () {
+      focusFrame();
+      if (++attempts > 12) clearInterval(timer);
+    }, 400);
+    document.addEventListener('visibilitychange', function () {
+      if (!document.hidden) focusFrame();
+    });
+    window.addEventListener('focus', focusFrame);
+  })();
+`;
+
 export default function EmbedPage({ params, searchParams }: EmbedPageProps) {
   const type = params.type === MediaType.tv ? MediaType.tv : MediaType.movie;
   const id = parseInt(params.id, 10);
@@ -59,13 +88,16 @@ export default function EmbedPage({ params, searchParams }: EmbedPageProps) {
       : server.getMovieLink(id, { autoplay: true });
 
   return (
-    <iframe
-      key={src}
-      src={src}
-      title="Player"
-      className="fixed inset-0 h-full w-full border-0 bg-black"
-      allow="autoplay *; fullscreen *; picture-in-picture *; encrypted-media *; accelerometer *; gyroscope *"
-      referrerPolicy="origin"
-    />
+    <>
+      <script dangerouslySetInnerHTML={{ __html: FOCUS_PLAYER_FRAME }} />
+      <iframe
+        key={src}
+        src={src}
+        title="Player"
+        className="fixed inset-0 h-full w-full border-0 bg-black"
+        allow="autoplay *; fullscreen *; picture-in-picture *; encrypted-media *; accelerometer *; gyroscope *"
+        referrerPolicy="origin"
+      />
+    </>
   );
 }

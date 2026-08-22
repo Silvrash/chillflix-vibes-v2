@@ -70,6 +70,7 @@ import com.chillflixvibes.tv.ui.components.ScreenPadding
 import com.chillflixvibes.tv.ui.components.TvButton
 import com.chillflixvibes.tv.ui.components.TvChip
 import com.chillflixvibes.tv.ui.components.rememberLoad
+import com.chillflixvibes.tv.ui.components.requestFocusWhenReady
 import com.chillflixvibes.tv.ui.theme.Accent
 import com.chillflixvibes.tv.ui.theme.ChillFlixTheme
 import com.chillflixvibes.tv.ui.theme.Muted
@@ -230,6 +231,16 @@ private fun PlayerScreen(
 
     BackHandler {
         if (overlayVisible) onExit() else overlayVisible = true
+    }
+
+    // Focus follows the overlay. Releasing the surface's focus doesn't grant it
+    // to Compose, so the panel has to claim it once the surface has let go —
+    // otherwise its buttons never highlight and the remote does nothing.
+    LaunchedEffect(overlayVisible) {
+        if (!overlayVisible) {
+            delay(120)
+            surface?.requestFocus()
+        }
     }
 
     Box(Modifier.fillMaxSize().background(Color.Black)) {
@@ -417,10 +428,18 @@ private fun EmbedWebView(
         },
         modifier = modifier,
         update = { view ->
-            // While the controls panel is up, the D-pad belongs to it.
             view.isFocusable = focusable
             view.isFocusableInTouchMode = focusable
-            if (!focusable) view.clearFocus()
+            if (focusable) {
+                // Nothing else hands this view focus: there is no touch on a
+                // TV, and Compose keeps the window's focus otherwise. Without
+                // this the remote's keys never reach the page at all, which is
+                // what makes the player's own controls unreachable.
+                view.requestFocus()
+            } else {
+                // While the controls panel is up, the D-pad belongs to it.
+                view.clearFocus()
+            }
         },
     )
 }
@@ -472,7 +491,8 @@ private fun ControlsPanel(
     onExit: () -> Unit,
 ) {
     val firstControl = remember { FocusRequester() }
-    LaunchedEffect(Unit) { runCatching { firstControl.requestFocus() } }
+    // Retry: the surface may still be releasing focus on the frame this runs.
+    LaunchedEffect(Unit) { firstControl.requestFocusWhenReady() }
 
     Column(
         Modifier

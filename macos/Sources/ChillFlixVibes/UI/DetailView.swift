@@ -8,7 +8,7 @@ struct DetailView: View {
     @State private var recommendations: [MediaItem] = []
     @State private var episodes: [Episode] = []
     @State private var season = 1
-    @Environment(\.openWindow) private var openWindow
+    @Environment(\.self) private var environment
 
     var body: some View {
         ScrollView {
@@ -65,10 +65,7 @@ struct DetailView: View {
                         .font(.callout).foregroundStyle(Palette.muted)
                         .lineLimit(3).frame(maxWidth: 620, alignment: .leading)
                 }
-                Button {
-                    let last = WatchStore.shared.lastWatched(type, id)
-                    play(season: last.season, episode: last.episode)
-                } label: {
+                NavigationLink(value: target(season: resumePoint.season, episode: resumePoint.episode)) {
                     Label(resumeLabel, systemImage: "play.fill")
                         .padding(.horizontal, 8).padding(.vertical, 4)
                 }
@@ -79,8 +76,10 @@ struct DetailView: View {
         .frame(height: 400)
     }
 
-    private func play(season: Int, episode: Int) {
-        openWindow(id: "player", value: PlaybackTarget(
+    private var resumePoint: (season: Int, episode: Int) { WatchStore.shared.lastWatched(type, id) }
+
+    private func target(season: Int, episode: Int) -> Route {
+        .play(PlaybackTarget(
             type: type, id: id, title: details?.displayTitle ?? "",
             season: season, episode: episode, isAnime: details?.isAnime ?? false,
             posterPath: details?.posterPath, backdropPath: details?.backdropPath
@@ -127,9 +126,7 @@ struct DetailView: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(alignment: .top, spacing: 14) {
                     ForEach(episodes) { episode in
-                        Button {
-                            play(season: season, episode: episode.episodeNumber)
-                        } label: {
+                        NavigationLink(value: target(season: season, episode: episode.episodeNumber)) {
                             VStack(alignment: .leading, spacing: 6) {
                                 AsyncImage(url: TmdbImage.url(episode.stillPath, size: "w300")) { image in
                                     image.resizable().aspectRatio(contentMode: .fill)

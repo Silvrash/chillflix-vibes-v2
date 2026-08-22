@@ -42,7 +42,17 @@ struct HomeView: View {
 /// apps lead with.
 struct HeroBanner: View {
     let item: MediaItem
-    @Environment(\.openWindow) private var openWindow
+
+    /// Resumes where they left off, if they've started this before.
+    private var playTarget: Route {
+        let type = item.mediaType(fallback: .movie)
+        let last = WatchStore.shared.lastWatched(type, item.id)
+        return .play(PlaybackTarget(
+            type: type, id: item.id, title: item.displayTitle,
+            season: last.season, episode: last.episode,
+            posterPath: item.posterPath, backdropPath: item.backdropPath
+        ))
+    }
 
     var body: some View {
         ZStack(alignment: .bottomLeading) {
@@ -81,14 +91,7 @@ struct HeroBanner: View {
                         .frame(maxWidth: 560, alignment: .leading)
                 }
                 HStack(spacing: 10) {
-                    Button {
-                        let last = WatchStore.shared.lastWatched(item.mediaType(fallback: .movie), item.id)
-                        openWindow(id: "player", value: PlaybackTarget(
-                            type: item.mediaType(fallback: .movie), id: item.id, title: item.displayTitle,
-                            season: last.season, episode: last.episode,
-                            posterPath: item.posterPath, backdropPath: item.backdropPath
-                        ))
-                    } label: {
+                    NavigationLink(value: playTarget) {
                         Label("Play", systemImage: "play.fill").padding(.horizontal, 8).padding(.vertical, 4)
                     }
                     .buttonStyle(.borderedProminent)

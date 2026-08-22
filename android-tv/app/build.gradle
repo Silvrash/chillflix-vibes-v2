@@ -18,32 +18,10 @@ android {
         versionCode 2
         versionName '2.0'
 
-    }
-
-    /**
-     * Two engines, because the right answer depends on the box.
-     *
-     * `webview` uses the system WebView: tiny, and correct on any device whose
-     * WebView is current — which is every Google TV and Fire TV made in the
-     * last several years.
-     *
-     * `gecko` bundles Mozilla's engine for televisions whose system WebView is
-     * frozen at whatever shipped with the firmware. It costs ~110 MB, so it is
-     * not the default.
-     */
-    flavorDimensions += 'engine'
-    productFlavors {
-        webview {
-            dimension 'engine'
-            versionNameSuffix '-webview'
-        }
-        gecko {
-            dimension 'engine'
-            versionNameSuffix '-gecko'
-            ndk {
-                // The target TV is 32-bit ARM. One ABI instead of four.
-                abiFilters 'armeabi-v7a'
-            }
+        ndk {
+            // Gecko ships a copy of its engine per ABI. The target televisions
+            // are 32-bit ARM, so one is enough.
+            abiFilters 'armeabi-v7a'
         }
     }
 
@@ -92,7 +70,8 @@ dependencies {
     implementation 'io.coil-kt:coil-compose:2.7.0'
     implementation 'com.squareup.okhttp3:okhttp:4.12.0'
 
-    // Gecko flavour only — the webview flavour must stay small.
+    // Bundles its own engine, so playback doesn't depend on the device's
+    // system WebView.
     implementation 'org.mozilla.geckoview:geckoview:115.0.20230726201356'
     implementation 'org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3'
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1'
