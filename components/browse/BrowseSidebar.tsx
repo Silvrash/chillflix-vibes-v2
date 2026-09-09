@@ -431,7 +431,13 @@ function Sheet({ open, onClose, children }: { open: boolean; onClose: () => void
   if (!open || typeof document === "undefined") return null;
 
   return createPortal(
-    <div ref={rootRef} role="dialog" aria-modal="true" aria-label="Browse" className="fixed inset-0 z-[60] flex items-end justify-center">
+    <div
+      ref={rootRef}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Browse"
+      className="fixed inset-0 z-[60] flex items-end justify-center"
+    >
       <div className="absolute inset-0 animate-fade-in bg-black/70" onClick={onClose} />
       <div className="relative flex max-h-[85vh] w-full animate-slide-up flex-col overflow-hidden rounded-t-2xl border border-white/10 bg-black/60 backdrop-blur-2xl">
         <div className="shrink-0 px-4 pb-3 pt-3">

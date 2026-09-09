@@ -36,8 +36,8 @@ export default function InstallPage() {
     <div className="mx-auto max-w-5xl px-4 pb-16 pt-24 sm:px-6 sm:pt-28 lg:px-10">
       <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">Install ChillFlixVibes</h1>
       <p className="mt-3 max-w-2xl text-muted">
-        Native apps for the television and the Mac, and the web app itself on a phone. Nothing here comes from a store, so
-        each one has a note about what its platform will ask you first.
+        Native apps for the television and the Mac, and the web app itself on a phone. Nothing here comes from a store, so each
+        one has a note about what its platform will ask you first.
       </p>
 
       <div className="mt-10 grid gap-4 lg:grid-cols-3">
@@ -131,8 +131,8 @@ function MacSteps() {
           below is the one that offers an override at all. Double-clicking never
           will, however many times it is tried. */}
       <p className="mt-2 max-w-2xl text-muted">
-        The app isn&apos;t notarised by Apple, so the first launch is refused. Right-click the app and choose Open — that
-        dialog has an Open button, where double-clicking gives you no way through. You only have to do this once.
+        The app isn&apos;t notarised by Apple, so the first launch is refused. Right-click the app and choose Open — that dialog
+        has an Open button, where double-clicking gives you no way through. You only have to do this once.
       </p>
       <p className="mt-4 text-sm text-muted">
         Unzip it, drag ChillFlixVibes to your Applications folder, then right-click → Open.

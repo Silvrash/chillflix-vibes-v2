@@ -63,11 +63,15 @@ export function FilterBar({ mediaType, filters, onChange, className }: FilterBar
 
   return (
     <div className={cn("flex flex-wrap items-center gap-2", className)}>
-
-      <Chip icon={<SlidersHorizontal className="h-4 w-4 text-muted" />} label="More filters" badge={activeCount > 0 ? activeCount.toString() : undefined} onClick={() => {
-        edited.current = false;
-        setOpen(true);
-      }} />
+      <Chip
+        icon={<SlidersHorizontal className="h-4 w-4 text-muted" />}
+        label="More filters"
+        badge={activeCount > 0 ? activeCount.toString() : undefined}
+        onClick={() => {
+          edited.current = false;
+          setOpen(true);
+        }}
+      />
 
       <FilterChips filters={filters} extras={extras} update={update} />
 
@@ -427,20 +431,35 @@ function yearChipLabel(min?: number, max?: number): string {
   return `Until ${max}`;
 }
 
-function Chip({ label, onRemove, onClick, badge, icon }: { label: string; onRemove?: () => void; onClick?: () => void; badge?: string; icon?: ReactNode }) {
+function Chip({
+  label,
+  onRemove,
+  onClick,
+  badge,
+  icon,
+}: {
+  label: string;
+  onRemove?: () => void;
+  onClick?: () => void;
+  badge?: string;
+  icon?: ReactNode;
+}) {
   return (
-    <span className={cn("flex items-center gap-1 rounded-xl border border-white/10 bg-white/10 px-3 py-1.5 text-xs font-medium text-accent", onClick && "cursor-pointer")} onClick={onClick}>
+    <span
+      className={cn(
+        "flex items-center gap-1 rounded-xl border border-white/10 bg-white/10 px-3 py-1.5 text-xs font-medium text-accent",
+        onClick && "cursor-pointer",
+      )}
+      onClick={onClick}
+    >
       {icon}
       {label}
-      {badge && (
-        <span className="rounded-lg bg-white/15 px-1.5 py-0.5 text-[11px] font-semibold text-white">{badge}</span>
-      )}
+      {badge && <span className="rounded-lg bg-white/15 px-1.5 py-0.5 text-[11px] font-semibold text-white">{badge}</span>}
       {onRemove && (
         <button type="button" aria-label={`Remove ${label}`} onClick={onRemove} className="text-accent/70 hover:text-white">
           <X className="h-3 w-3" />
         </button>
       )}
-
     </span>
   );
 }

@@ -2,12 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Star } from "lucide-react";
-import {
-  ACCOUNT_QUERY_KEYS,
-  clearRatingMutation,
-  getAccountStatesQuery,
-  setRatingMutation,
-} from "@/lib/tmdb/account-queries";
+import { ACCOUNT_QUERY_KEYS, clearRatingMutation, getAccountStatesQuery, setRatingMutation } from "@/lib/tmdb/account-queries";
 import type { MediaType } from "@/lib/tmdb/queries";
 import { cn } from "@/lib/utils";
 import { useAccount } from "./AccountProvider";
