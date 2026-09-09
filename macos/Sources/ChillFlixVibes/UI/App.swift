@@ -35,7 +35,57 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         // After the run loop turn in which SwiftUI restores the frame, or the
         // clamp would be overwritten by the restore it is correcting.
-        DispatchQueue.main.async { NSApp.windows.forEach(Self.bringOnScreen) }
+        DispatchQueue.main.async {
+            NSApp.windows.forEach {
+                Self.bringOnScreen($0)
+                Self.configureWindow($0)
+            }
+        }
+
+        // Re-applied as windows update, not just once: a window opened later has
+        // not been through the above, and pushing a screen hands SwiftUI's own
+        // toolbar back to a window that had already been configured. The work is
+        // idempotent and cheap.
+        NotificationCenter.default.addObserver(
+            forName: NSWindow.didUpdateNotification, object: nil, queue: .main
+        ) { note in
+            guard let window = note.object as? NSWindow else { return }
+            Self.configureWindow(window)
+        }
+    }
+
+    /// Keeps the titlebar — and so the close, minimise and full-screen buttons —
+    /// while leaving no strip for it to occupy.
+    ///
+    /// Hiding the window toolbar outright does remove the grey band a pushed
+    /// screen was inset by, but on this window it takes the titlebar's buttons
+    /// with it: `standardWindowButton` then has nothing to return, and the
+    /// window cannot be closed, minimised or zoomed with the mouse at all.
+    ///
+    /// So the titlebar stays and is made invisible instead. `fullSizeContentView`
+    /// lets the artwork run underneath it, a transparent titlebar with no
+    /// separator leaves nothing drawn over the artwork, and an empty toolbar
+    /// occupies no height — which is the band, gone, with the buttons still
+    /// floating in the corner where macOS puts them.
+    private static func configureWindow(_ window: NSWindow) {
+        window.styleMask.insert(.fullSizeContentView)
+        window.titlebarAppearsTransparent = true
+        window.titleVisibility = .hidden
+        window.titlebarSeparatorStyle = .none
+        window.isMovableByWindowBackground = true
+
+        // SwiftUI hands a pushed screen a toolbar to hold its back chevron. The
+        // app draws its own in the nav pill, so this one only ever contributed
+        // the band.
+        if let toolbar = window.toolbar {
+            toolbar.showsBaselineSeparator = false
+            toolbar.isVisible = false
+        }
+
+        for button: NSWindow.ButtonType in [.closeButton, .miniaturizeButton, .zoomButton] {
+            window.standardWindowButton(button)?.isHidden = false
+            window.standardWindowButton(button)?.alphaValue = 1
+        }
     }
 
     private static func bringOnScreen(_ window: NSWindow) {
@@ -156,22 +206,8 @@ struct ContentView: View {
                     case let .network(network): BrowseView(section: .tv, initialNetwork: network)
                     }
                 }
-                // Every pushed screen hides it again for itself. The modifier on
-                // the stack below covers the root only: a destination is handed
-                // its own toolbar for the back chevron, so hiding it once out
-                // there leaves every pushed screen inset by a strip the root
-                // does not have — the pill and the heading both sitting lower on
-                // a detail page than on home, which is exactly how it looked.
-                .toolbar(.hidden, for: .windowToolbar)
             }
         }
-        // The root's own. Pushing a screen makes SwiftUI put its back chevron in
-        // a window toolbar, and the toolbar takes a strip of the window to hold
-        // it — a grey band above a page whose backdrop is meant to run to the
-        // top edge, on a window that asked for no titlebar in the first place.
-        // Hiding it and drawing the chevron ourselves gives the artwork the
-        // whole window back.
-        .toolbar(.hidden, for: .windowToolbar)
         .background(Palette.background)
         // Both of these float *over* the screen rather than taking a strip of
         // it, so a hero runs full-bleed underneath. Every screen that isn't led
