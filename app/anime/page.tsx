@@ -1,13 +1,18 @@
 import type { Metadata } from "next";
 import { BrowsePageServer } from "@/components/browse/BrowsePageServer";
 import { tvPresets } from "@/lib/presets";
+import { browseMetadata } from "@/lib/tmdb/filter-params";
 import { MediaType } from "@/lib/tmdb/queries";
 
-export const metadata: Metadata = {
-  title: "Anime",
-  description: "Browse and stream popular and top-rated anime series.",
-  alternates: { canonical: "/anime" },
-};
+export function generateMetadata({ searchParams }: { searchParams: Record<string, string | string[] | undefined> }): Metadata {
+  return browseMetadata({
+    searchParams,
+    section: "Anime",
+    mediaType: MediaType.tv,
+    path: "/anime",
+    description: "Browse and stream popular and top-rated anime series.",
+  });
+}
 
 // Filters live in the query string, so render per request (cached data layer keeps it fast).
 export const dynamic = "force-dynamic";

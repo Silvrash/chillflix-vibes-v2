@@ -180,16 +180,3 @@ export function filterStateToParams(
 
   return params;
 }
-
-/** Whether the state differs from a clean slate (used to show a Reset button). */
-export function hasActiveFilters(state: FilterState, animeOnly?: boolean): boolean {
-  return Boolean(
-    state.genres.filter((g) => !(animeOnly && g === 16)).length ||
-    state.yearMin ||
-    state.yearMax ||
-    (state.minRating && state.minRating > 0) ||
-    state.language ||
-    (state.extra && Object.keys(state.extra).length) ||
-    state.sortBy !== DEFAULT_SORT,
-  );
-}

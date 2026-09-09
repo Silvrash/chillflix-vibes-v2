@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
+import { Footer } from "@/components/layout/Footer";
 import { Navbar } from "@/components/layout/Navbar";
 import { PWARegister } from "@/components/PWARegister";
 import { TVMode } from "@/components/TVMode";
@@ -21,6 +22,12 @@ export const metadata: Metadata = {
   description: SITE_DESCRIPTION,
   applicationName: SITE_NAME,
   keywords: ["movies", "tv shows", "anime", "streaming", "watch online", "free movies", SITE_NAME],
+  // The canonical and the card below it are the home page's own, and sit at this level only because
+  // a layout is where Next lets a page inherit them. Inheritance is the trap: a route that names
+  // just a title keeps this canonical and this whole card, so it unfurls as the front door and
+  // tells crawlers it *is* the front door. So give any page worth sharing or indexing its own, in
+  // one piece — `pageMetadata` in lib/seo.ts writes the set — since Next replaces each of these
+  // keys whole rather than merging the fields inside it.
   alternates: { canonical: "/" },
   openGraph: {
     type: "website",
@@ -56,7 +63,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0a0e17",
+  themeColor: "#0a0a0a",
   width: "device-width",
   initialScale: 1,
 };
@@ -64,11 +71,15 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={inter.variable}>
-      <body className="bg-background font-sans text-white antialiased">
+      {/* Column layout so the footer is pinned below a short page instead of floating
+          mid-screen — `min-h-screen` on <main> would instead guarantee a scrollbar on
+          every page, since the footer always adds height beyond the viewport. */}
+      <body className="flex min-h-screen flex-col bg-background font-sans text-white antialiased">
         <NuqsAdapter>
           <Providers>
             <Navbar />
-            <main className="min-h-screen">{children}</main>
+            <main className="flex-1">{children}</main>
+            <Footer />
           </Providers>
         </NuqsAdapter>
         <PWARegister />

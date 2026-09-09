@@ -8,7 +8,7 @@
 
 html,
 body {
-  background-color: #0a0e17;
+  background-color: #0a0a0a;
   color: #ececee;
 }
 
@@ -17,11 +17,10 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Google TV / D-pad ("10-foot") mode — toggled by <TVMode> when the app runs
-   in the TV WebView (or with ?tv=1). Spatial navigation lives in
-   lib/tv/spatial-nav.ts; this just makes the focused element unmistakable from
-   the couch. scroll-margin keeps it clear of the sticky navbar when it scrolls
-   into view. */
+/* Google TV / D-pad ("10-foot") mode — everything below `html.tv` is toggled by
+   <TVMode> when the app runs in the TV WebView (or with ?tv=1). Spatial
+   navigation itself lives in lib/tv/spatial-nav.ts. */
+
 /* Scale the whole UI up for the couch. Bumping the root font-size enlarges all
    rem-based text and spacing at once; the poster grid and rails switch to
    size-based widths so a bigger scale yields fewer, larger posters instead of
@@ -36,6 +35,15 @@ html.tv .tv-rail-item {
   width: 12rem;
 }
 
+/* Make the focused element unmistakable from the couch — a pointer has a cursor
+   to follow, a D-pad has only this. scroll-margin keeps it clear of the floating
+   navbar when it scrolls into view.
+
+   No border-radius here: a box-shadow ring already traces whatever corners the
+   element has, so setting one only *changes* them. A single value can't be right
+   for a page of controls that are rounded to their own size — it pinched the
+   16px corners of an episode card down to 12px for exactly as long as the viewer
+   was looking at it. */
 html.tv a:focus,
 html.tv button:focus,
 html.tv input:focus,
@@ -43,13 +51,29 @@ html.tv select:focus,
 html.tv textarea:focus,
 html.tv [tabindex]:focus {
   outline: none;
-  border-radius: 0.6rem;
   box-shadow:
-    0 0 0 3px #0a0e17,
+    0 0 0 3px #0a0a0a,
     0 0 0 6px #3b82f6;
   position: relative;
   z-index: 20;
   scroll-margin: 6rem;
+}
+
+/* The way out of the player (see components/player/Player.tsx), shown as the
+   viewer enters it and then faded: a hint with no pointer to dismiss it would
+   otherwise sit over the film for its whole runtime. Four seconds at full
+   strength is a couch-distance read of four words, with a second to fade. */
+.tv-player-exit-hint {
+  animation: tv-hint-fade 5s ease-in forwards;
+}
+@keyframes tv-hint-fade {
+  0%,
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
 }
 
 /* Hide scrollbars on horizontal rails while keeping scroll behaviour. */
@@ -67,14 +91,14 @@ html.tv [tabindex]:focus {
   height: 10px;
 }
 ::-webkit-scrollbar-track {
-  background: #0a0e17;
+  background: #0a0a0a;
 }
 ::-webkit-scrollbar-thumb {
-  background: #1b2536;
+  background: #1f1f1f;
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #2a384f;
+  background: #2f2f2f;
 }
 
 /* Smart-TV browsers are often a long way behind: many ship a Chromium older

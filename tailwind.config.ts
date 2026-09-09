@@ -5,14 +5,17 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        background: "#0a0e17",
-        surface: "#101827",
-        "surface-light": "#1b2536",
+        // A neutral near-black ground rather than a navy one. Artwork is the
+        // only colour on a streaming page, and a blue-tinted ground competes
+        // with every poster on the screen.
+        background: "#0a0a0a",
+        surface: "#141414",
+        "surface-light": "#1f1f1f",
         primary: "#3f83f8",
         // Darker shade for solid buttons so white text meets WCAG AA (≥4.5:1).
         "primary-dark": "#2563eb",
-        muted: "#9ba1a6",
-        accent: "#acc2ec",
+        muted: "#a1a1aa",
+        accent: "#d4d4d8",
       },
       fontFamily: {
         sans: ["var(--font-inter)", "system-ui", "sans-serif"],

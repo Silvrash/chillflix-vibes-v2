@@ -2,24 +2,34 @@
 
 import { useEffect, useRef } from "react";
 import { SearchX } from "lucide-react";
-import { MediaCard } from "./MediaCard";
 import { Spinner } from "@/components/ui/Spinner";
-import type { Movie, TVShow } from "@/lib/tmdb/queries";
+import { MediaCard, type MediaCardItem } from "./MediaCard";
 
-interface MediaGridProps {
-  items: (Movie | TVShow)[];
-  isLoading: boolean;
-  isFetchingNextPage: boolean;
-  hasNextPage: boolean;
-  onLoadMore: () => void;
+export interface MediaGridProps {
+  items: MediaCardItem[];
+  isLoading?: boolean;
+  isFetchingNextPage?: boolean;
+  hasNextPage?: boolean;
+  onLoadMore?: () => void;
+  /** Headline shown when there is nothing to render. */
+  emptyLabel?: string;
+  className?: string;
 }
 
-export function MediaGrid({ items, isLoading, isFetchingNextPage, hasNextPage, onLoadMore }: MediaGridProps) {
+export function MediaGrid({
+  items,
+  isLoading = false,
+  isFetchingNextPage = false,
+  hasNextPage = false,
+  onLoadMore,
+  emptyLabel = "No results found",
+  className,
+}: MediaGridProps) {
   const sentinelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const node = sentinelRef.current;
-    if (!node) return;
+    if (!node || !onLoadMore) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -36,16 +46,19 @@ export function MediaGrid({ items, isLoading, isFetchingNextPage, hasNextPage, o
 
   if (!isLoading && items.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center gap-3 py-24 text-muted">
-        <SearchX className="h-16 w-16" />
-        <p className="text-lg">No results found</p>
+      <div className="flex flex-col items-center justify-center gap-3 py-24 text-center">
+        <SearchX className="h-12 w-12 text-muted" />
+        <p className="text-lg font-semibold text-white">{emptyLabel}</p>
+        <p className="text-sm text-muted">Try a different search, or loosen the filters.</p>
       </div>
     );
   }
 
   return (
-    <div>
-      <div className="tv-grid grid grid-cols-3 gap-3 sm:grid-cols-4 sm:gap-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8">
+    <div className={className}>
+      {/* `tv-grid` lets globals.css swap in size-based columns for the couch; it only wins over
+          grid-cols-* while those stay plain utilities, so no arbitrary grid-template values here. */}
+      <div className="tv-grid grid grid-cols-3 gap-4 sm:grid-cols-4 lg:grid-cols-5 2xl:grid-cols-6">
         {items.map((item, index) => (
           <MediaCard key={`${item.id}-${index}`} item={item} />
         ))}

@@ -9,7 +9,9 @@ import type { Movie, TVShow } from "@/lib/tmdb/queries";
 
 const CARD_WIDTH = 340;
 const MARGIN = 8;
-const TOP_SAFE = 72; // clear the sticky navbar (h-16) + a little breathing room
+// Clears the floating navbar pill, whose tallest form is ~64px (sm:pt-4 + p-1.5 + an h-9 logo),
+// plus a little breathing room. Nothing links the two, so re-measure the pill if it grows.
+const TOP_SAFE = 72;
 const OPEN_DELAY = 320;
 
 interface TriggerRect {
@@ -24,6 +26,11 @@ interface TriggerRect {
  * preview is portalled to <body> with fixed positioning so it's never clipped
  * by the grid's or rails' overflow, and only activates on hover-capable devices.
  * The card measures itself and clamps to the viewport so it never runs off-screen.
+ *
+ * Pointer only, deliberately: it opens on the pointer resting on a card, never on focus. A panel
+ * this size is a peek the pointer asked for, but a D-pad or Tab user has not asked for anything —
+ * the first arrow press would blank the hero behind a 340px card they cannot dismiss or reach into.
+ * The panel is aria-hidden decoration, so keyboard and TV lose nothing they could have used.
  */
 export function HoverPreview({ item, children }: { item: Movie | TVShow; children: ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -53,14 +60,20 @@ export function HoverPreview({ item, children }: { item: Movie | TVShow; childre
     const onMove = () => close();
     window.addEventListener("scroll", onMove, true);
     window.addEventListener("resize", onMove);
+    // A dialog opened from the keyboard (⌘K, "/") leaves the pointer parked on this card: no
+    // mouseleave, and the scroll lock means no scroll either, so nothing else would take the
+    // preview down and it would keep painting over the dialog. Any keystroke says the pointer is
+    // no longer what is driving the page, which is the only thing this card answers to.
+    window.addEventListener("keydown", onMove, true);
     return () => {
       window.removeEventListener("scroll", onMove, true);
       window.removeEventListener("resize", onMove);
+      window.removeEventListener("keydown", onMove, true);
     };
   }, [trigger]);
 
   return (
-    <div ref={ref} onMouseEnter={open} onMouseLeave={close} onFocus={open} onBlur={close}>
+    <div ref={ref} onMouseEnter={open} onMouseLeave={close}>
       {children}
       {trigger && createPortal(<PreviewCard item={item} trigger={trigger} />, document.body)}
     </div>
