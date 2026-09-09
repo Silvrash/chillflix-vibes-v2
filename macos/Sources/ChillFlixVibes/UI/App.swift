@@ -110,11 +110,23 @@ struct ContentView: View {
                 }
             }
         }
+        // Pushing a screen makes SwiftUI put its back chevron in a window
+        // toolbar, and the toolbar takes a strip of the window to hold it —
+        // a grey band above a detail page whose backdrop is meant to run to the
+        // top edge, on a window that asked for no titlebar in the first place.
+        // Hiding it and drawing the chevron ourselves costs one control and
+        // gives the artwork the whole window back.
+        .toolbar(.hidden, for: .windowToolbar)
         .background(Palette.background)
-        // The pill floats *over* the screen rather than taking a strip of it, so
-        // a hero runs full-bleed underneath. Every screen that isn't led by
-        // artwork starts `Metric.navClearance` down instead.
+        // Both of these float *over* the screen rather than taking a strip of
+        // it, so a hero runs full-bleed underneath. Every screen that isn't led
+        // by artwork starts `Metric.navClearance` down instead.
         .overlay(alignment: .top) { NavPill(destination: destination, select: go) }
+        .overlay(alignment: .topLeading) {
+            if !path.isEmpty {
+                BackButton { path.removeLast() }
+            }
+        }
     }
 
     /// Picking a page is arriving somewhere new, not a step deeper: whatever
@@ -132,6 +144,36 @@ struct ContentView: View {
 /// top-left corner of a window with no titlebar. The window's minimum width is
 /// far wider than this pill plus twice that corner, so the two can never meet —
 /// which is what keeps the buttons clickable with no chrome reserved for them.
+/// The way back out of a pushed screen.
+///
+/// Drawn rather than left to the window toolbar, which reserves a strip across
+/// the top to hold it. Inset past the traffic lights, which `.hiddenTitleBar`
+/// leaves floating in that same corner — they are the one thing up here the app
+/// does not draw and cannot move.
+private struct BackButton: View {
+    let action: () -> Void
+
+    @State private var hovering = false
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: "chevron.left")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(.white)
+                .frame(width: 30, height: 30)
+        }
+        .buttonStyle(.plain)
+        .glass(radius: 15, fill: Color.black.opacity(hovering ? 0.55 : 0.4))
+        .onHover { hovering = $0 }
+        .animation(.easeOut(duration: 0.12), value: hovering)
+        .padding(.leading, 92)
+        .padding(.top, 14)
+        // Cmd+[ and the swipe-back gesture both expect this to exist; the
+        // toolbar's own chevron is gone.
+        .keyboardShortcut("[", modifiers: .command)
+    }
+}
+
 private struct NavPill: View {
     let destination: Destination
     let select: (Destination) -> Void
