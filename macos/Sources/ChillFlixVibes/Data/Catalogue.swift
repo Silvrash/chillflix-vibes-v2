@@ -109,18 +109,36 @@ let homeShelves: [Preset] = {
 /// Playback goes through the site's `/embed` route, which builds the provider
 /// URL itself — so this app never constructs one. It only needs the labels and
 /// the id of the chosen player, mirroring `data/Streams.kt`.
+///
+/// The id names the *provider* and the label names the *slot*, which are two
+/// different things wherever the lineups differ: anime leads with vidnest where
+/// everything else leads with vidlink, so both are "Main Player" to the viewer
+/// while being providers a preference can tell apart. The id strings are shared
+/// with the site and the TV app and must match them exactly.
 struct PlayerChoice: Identifiable, Hashable, Sendable {
     let id: String
     let label: String
 }
 
-let playerMain = PlayerChoice(id: "main", label: "Main Player")
-let playerAlternate = PlayerChoice(id: "alternate", label: "Alternate Player")
-let playerBackup = PlayerChoice(id: "backup", label: "Backup Player")
+let playerVidlink = PlayerChoice(id: "vidlink", label: "Main Player")
+let playerVidsrcEmbed = PlayerChoice(id: "vidsrc-embed", label: "Alternate Player")
+let playerVidsrcTo = PlayerChoice(id: "vidsrc-to", label: "Backup Player")
+let playerVidnest = PlayerChoice(id: "vidnest", label: "Main Player")
 
+/// The same three lineups the site builds: anime leads with vidnest and drops
+/// vidsrc.to, films drop it too, and everything else gets all three. The two
+/// that move down a slot for anime are relabelled for the position they now
+/// hold and keep the provider ids they have elsewhere.
 func players(for type: MediaType, isAnime: Bool) -> [PlayerChoice] {
-    if isAnime || type == .tv { return [playerMain, playerAlternate, playerBackup] }
-    return [playerMain, playerAlternate]
+    if isAnime {
+        return [
+            playerVidnest,
+            PlayerChoice(id: playerVidlink.id, label: "Alternate Player"),
+            PlayerChoice(id: playerVidsrcEmbed.id, label: "Backup Player"),
+        ]
+    }
+    if type == .tv { return [playerVidlink, playerVidsrcEmbed, playerVidsrcTo] }
+    return [playerVidlink, playerVidsrcEmbed]
 }
 
 /// The chrome-less player page on the site. Building the URL here — rather than

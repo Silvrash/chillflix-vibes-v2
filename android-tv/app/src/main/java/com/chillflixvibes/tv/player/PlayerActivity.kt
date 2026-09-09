@@ -202,7 +202,8 @@ private fun PlayerScreen(
         playersFor(type, details?.isAnime == true, anilistId)
     }
     var preferredPlayer by remember { mutableStateOf(store.preferredPlayer) }
-    // An id that isn't in this lineup (anime has its own) falls back to first.
+    // A provider that isn't in this lineup (anime has its own), and no stored
+    // preference at all, both fall back to the lineup's first player.
     val activeIndex = players.indexOfFirst { it.id == preferredPlayer }.coerceAtLeast(0)
 
     // The app doesn't build provider URLs any more: it points the WebView at
@@ -210,7 +211,8 @@ private fun PlayerScreen(
     // web app uses. That page is served from the real origin over https, so
     // the provider sees the referrer, headers and page context it expects —
     // conditions a WebView-local page can't reproduce. The lineup below is
-    // only used for the controls-panel labels; the choice travels as an index.
+    // only used for the controls-panel labels; the choice travels as its
+    // provider id, with the position alongside for older site deploys.
     val siteUrl = remember { context.getString(R.string.api_base_url).trimEnd('/') }
     var useProxy by remember { mutableStateOf(store.useProxy) }
     val player = players[activeIndex]

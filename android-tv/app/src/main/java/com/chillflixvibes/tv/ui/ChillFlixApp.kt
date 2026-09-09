@@ -1,6 +1,7 @@
 package com.chillflixvibes.tv.ui
 
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -14,8 +15,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -29,6 +32,7 @@ import android.net.Uri
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
@@ -52,15 +56,23 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.chillflixvibes.tv.BuildConfig
 import com.chillflixvibes.tv.data.MediaType
 import com.chillflixvibes.tv.data.Section
 import com.chillflixvibes.tv.data.sectionForPreset
 import com.chillflixvibes.tv.ui.browse.BrowseScreen
 import com.chillflixvibes.tv.ui.components.ScreenPadding
+import com.chillflixvibes.tv.ui.components.focusRing
+import com.chillflixvibes.tv.ui.components.glass
 import com.chillflixvibes.tv.ui.detail.DetailScreen
 import com.chillflixvibes.tv.ui.home.HomeScreen
 import com.chillflixvibes.tv.ui.search.SearchScreen
 import com.chillflixvibes.tv.ui.theme.Background
+import com.chillflixvibes.tv.ui.theme.ControlShape
+import com.chillflixvibes.tv.ui.theme.GlassFocused
+import com.chillflixvibes.tv.ui.theme.GlassRaised
+import com.chillflixvibes.tv.ui.theme.Muted
+import com.chillflixvibes.tv.ui.theme.PanelShape
 import com.chillflixvibes.tv.ui.theme.Primary
 import com.chillflixvibes.tv.ui.theme.PrimaryDark
 
@@ -69,8 +81,14 @@ private const val ROUTE_SEARCH = "search"
 private const val ROUTE_BROWSE = "browse/{section}?preset={preset}"
 private const val ROUTE_DETAIL = "detail/{type}/{id}"
 
+/**
+ * Vertical overscan margin. `ScreenPadding` is the horizontal 5%; on a 16:9
+ * panel the same 5% off a shorter axis is a little over half that.
+ */
+private val TopSafeInset = 28.dp
+
 /** Vertical space the floating nav bar occupies; screens inset their content by it. */
-val NavBarHeight = 74.dp
+val NavBarHeight = TopSafeInset + 76.dp
 
 /**
  * Top-level navigation.
@@ -187,6 +205,13 @@ private fun NavHostController.navigateTopLevel(destination: String) {
     }
 }
 
+/**
+ * The floating glass pill the web app wears, centred over the artwork.
+ *
+ * A gradient behind it fades the top of the backdrop out: Compose has no
+ * portable backdrop blur, so the pill's own translucency needs help holding the
+ * labels legible over a bright hero.
+ */
 @Composable
 private fun NavBar(
     currentRoute: String?,
@@ -197,17 +222,14 @@ private fun NavBar(
     modifier: Modifier = Modifier,
 ) {
     Box(modifier.fillMaxWidth()) {
-        // Fades the artwork out under the bar so labels stay readable without
-        // painting a solid strip across the top of the hero.
         Box(
             Modifier
                 .fillMaxWidth()
-                .height(NavBarHeight + 40.dp)
+                .height(NavBarHeight + 48.dp)
                 .background(
                     Brush.verticalGradient(
-                        0f to Background,
-                        0.5f to Background.copy(alpha = 0.94f),
-                        0.75f to Background.copy(alpha = 0.6f),
+                        0f to Background.copy(alpha = 0.92f),
+                        0.55f to Background.copy(alpha = 0.55f),
                         1f to Color.Transparent,
                     ),
                 ),
@@ -215,7 +237,8 @@ private fun NavBar(
 
         Row(
             Modifier
-                .fillMaxWidth()
+                .align(Alignment.TopCenter)
+                .padding(top = TopSafeInset)
                 // Pressing Down hands focus straight to the screen's primary
                 // control. Compose's geometric search doesn't cross from this
                 // floating bar into the content below it, and a `focusProperties`
@@ -229,11 +252,12 @@ private fun NavBar(
                     }
                 }
                 .focusGroup()
-                .padding(start = ScreenPadding, end = ScreenPadding, top = 18.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                .glass(PanelShape)
+                .padding(horizontal = 10.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Wordmark(Modifier.padding(end = 26.dp))
+            Wordmark(Modifier.padding(start = 4.dp, end = 18.dp))
             NavItem("Home", currentRoute == ROUTE_HOME, focusRequester = navFocus) { onNavigate(ROUTE_HOME) }
             Section.entries.forEach { section ->
                 NavItem(
@@ -244,27 +268,55 @@ private fun NavBar(
             }
             NavItem("Search", currentRoute == ROUTE_SEARCH) { onNavigate(ROUTE_SEARCH) }
         }
+
+        // Sideloaded builds all look alike from the couch; showing the version
+        // is the only way to tell what actually installed. It sits outside the
+        // pill, which holds destinations only.
+        Box(
+            Modifier
+                .align(Alignment.TopEnd)
+                .padding(top = TopSafeInset, end = ScreenPadding)
+                .height(NavBarHeight - TopSafeInset),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                "v${BuildConfig.VERSION_NAME}",
+                style = MaterialTheme.typography.labelSmall,
+                color = Muted.copy(alpha = 0.7f),
+            )
+        }
     }
 }
 
 @Composable
 private fun Wordmark(modifier: Modifier = Modifier) {
     Row(modifier, verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.size(width = 5.dp, height = 22.dp).clip(RoundedCornerShape(3.dp)).background(Primary))
+        Box(
+            Modifier.size(34.dp).clip(RoundedCornerShape(11.dp)).background(PrimaryDark),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                Icons.Filled.PlayArrow,
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier.size(21.dp),
+            )
+        }
         Text(
-            "  CHILLFLIX",
+            "CHILLFLIX",
             style = MaterialTheme.typography.titleMedium,
             color = Color.White,
             fontWeight = FontWeight.Black,
             letterSpacing = 1.5.sp,
+            modifier = Modifier.padding(start = 10.dp),
         )
     }
 }
 
 /**
- * A nav destination. The bar itself is transparent over the artwork, but the
- * states stay blue: a bright blue pill with a white ring when focused, a
- * deeper blue for the section you're in.
+ * A nav destination: neutral until it is the section you're in, and ringed in
+ * blue when the D-pad is on it — the same focus mark every control in the app
+ * wears, so there is never a question of where the remote is pointing.
  */
 @Composable
 private fun NavItem(
@@ -274,28 +326,33 @@ private fun NavItem(
     onClick: () -> Unit,
 ) {
     var focused by remember { mutableStateOf(false) }
-    val shape = RoundedCornerShape(22.dp)
+    val scale by animateFloatAsState(
+        if (focused) 1.04f else 1f,
+        animationSpec = tween(160),
+        label = "nav-scale",
+    )
 
     Box(
         Modifier
             .then(focusRequester?.let { Modifier.focusRequester(it) } ?: Modifier)
-            .clip(shape)
+            .scale(scale)
+            .focusRing(focused, radius = 14.dp)
+            .clip(ControlShape)
             .background(
                 when {
-                    focused -> Primary
-                    selected -> PrimaryDark
+                    focused -> GlassFocused
+                    selected -> GlassRaised
                     else -> Color.Transparent
                 }
             )
-            .border(3.dp, if (focused) Color.White else Color.Transparent, shape)
             .onFocusChanged { focused = it.isFocused }
             .clickable(onClick = onClick)
-            .padding(horizontal = 18.dp, vertical = 9.dp),
+            .padding(horizontal = 18.dp, vertical = 8.dp),
     ) {
         Text(
             label,
             style = MaterialTheme.typography.labelLarge,
-            color = if (focused || selected) Color.White else Color.White.copy(alpha = 0.82f),
+            color = if (focused || selected) Color.White else Muted,
             maxLines = 1,
         )
     }

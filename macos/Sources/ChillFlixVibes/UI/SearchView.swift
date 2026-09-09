@@ -6,34 +6,34 @@ struct SearchView: View {
     @State private var query = ""
     @State private var results: [(item: MediaItem, type: MediaType)] = []
     @State private var searching = false
+    @FocusState private var typing: Bool
 
-    private let columns = [GridItem(.adaptive(minimum: 150), spacing: 16)]
+    private let columns = [GridItem(.adaptive(minimum: Metric.posterWidth), spacing: Metric.railGap)]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            TextField("Search movies and shows", text: $query)
-                .textFieldStyle(.roundedBorder)
-                .font(.title3)
-                .padding(28)
+            header
 
             if searching && results.isEmpty {
-                ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
+                LoadingIndicator()
             } else if query.trimmingCharacters(in: .whitespaces).count < 2 {
-                hint("Type at least two letters to search.")
+                EmptyStateView(symbol: "magnifyingglass", message: "Type at least two letters to search.")
             } else if results.isEmpty {
-                hint("No results for “\(query)”.")
+                EmptyStateView(symbol: "questionmark.circle", message: "No results for “\(query)”.")
             } else {
                 ScrollView {
-                    LazyVGrid(columns: columns, alignment: .leading, spacing: 18) {
+                    LazyVGrid(columns: columns, alignment: .leading, spacing: 26) {
                         ForEach(results, id: \.item.id) { result in
                             NavigationLink(value: Route.detail(result.type, result.item.id)) {
-                                PosterCard(item: result.item)
+                                PosterCard(item: result.item, type: result.type)
                             }
                             .buttonStyle(.plain)
                         }
                     }
-                    .padding(28)
+                    .padding(.horizontal, Metric.gutter)
+                    .padding(.vertical, 10)
                 }
+                .overlayScrollers()
             }
         }
         .background(Palette.background)
@@ -58,9 +58,33 @@ struct SearchView: View {
         }
     }
 
-    private func hint(_ message: String) -> some View {
-        Text(message)
-            .foregroundStyle(Palette.muted)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+    /// The field is glass with the symbol inside it rather than a bordered form
+    /// control: this screen is one question, and a system text field frames it
+    /// as data entry.
+    private var header: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            PageHeading(title: "Search")
+
+            HStack(spacing: 10) {
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(Palette.muted)
+                TextField("Movies and shows", text: $query)
+                    .textFieldStyle(.plain)
+                    .font(.system(size: 15))
+                    .foregroundStyle(.white)
+                    .focused($typing)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 11)
+            .glass(radius: Metric.cardRadius, fill: Color.white.opacity(0.06))
+            .frame(maxWidth: 560)
+        }
+        .padding(.horizontal, Metric.gutter)
+        .padding(.top, Metric.navClearance)
+        .padding(.bottom, 18)
+        // Landing on Search means wanting to type; a Mac app should not ask for
+        // a click first.
+        .onAppear { typing = true }
     }
 }

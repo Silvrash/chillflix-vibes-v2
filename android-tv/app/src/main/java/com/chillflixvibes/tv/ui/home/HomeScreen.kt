@@ -12,7 +12,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -23,18 +25,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.foundation.focusGroup
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.focus.onFocusChanged
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -50,17 +46,20 @@ import com.chillflixvibes.tv.player.PlayerActivity
 import com.chillflixvibes.tv.ui.NavBarHeight
 import com.chillflixvibes.tv.ui.components.LoadState
 import com.chillflixvibes.tv.ui.components.MediaRow
+import com.chillflixvibes.tv.ui.components.HeroScrims
+import com.chillflixvibes.tv.ui.components.RatingBadge
 import com.chillflixvibes.tv.ui.components.RowPlaceholder
 import com.chillflixvibes.tv.ui.components.ScreenPadding
 import com.chillflixvibes.tv.ui.components.TvButton
 import com.chillflixvibes.tv.ui.components.TvImage
+import com.chillflixvibes.tv.ui.components.glass
 import com.chillflixvibes.tv.ui.components.rememberLoad
 import com.chillflixvibes.tv.ui.components.requestFocusWhenReady
 import com.chillflixvibes.tv.ui.rememberResumeTick
 import com.chillflixvibes.tv.ui.theme.Accent
 import com.chillflixvibes.tv.ui.theme.Background
 import com.chillflixvibes.tv.ui.theme.Muted
-import com.chillflixvibes.tv.ui.theme.Star
+import com.chillflixvibes.tv.ui.theme.PillShape
 
 /**
  * The launcher screen: a full-bleed hero for the top trending title, a
@@ -154,7 +153,7 @@ fun HomeScreen(
                         items = continueWatching.map { it.toMediaItem() },
                         fallbackType = MediaType.TV,
                         onSelect = { item, type -> onOpen(type, item.id) },
-                        modifier = Modifier.padding(top = 26.dp),
+                        modifier = Modifier.padding(top = 34.dp),
                     )
                 }
             }
@@ -165,7 +164,7 @@ fun HomeScreen(
                     items = (trending as? LoadState.Success)?.value.orEmpty(),
                     fallbackType = MediaType.MOVIE,
                     onSelect = { item, type -> onOpen(type, item.id) },
-                    modifier = Modifier.padding(top = if (continueWatching.isEmpty()) 26.dp else 0.dp),
+                    modifier = Modifier.padding(top = if (continueWatching.isEmpty()) 34.dp else 0.dp),
                 )
             }
 
@@ -173,7 +172,7 @@ fun HomeScreen(
                 PresetRow(preset = HOME_SHELVES[index], onOpen = onOpen, onSeeAll = onSeeAll)
             }
 
-            item(key = "bottom-spacer") { Box(Modifier.height(40.dp)) }
+            item(key = "bottom-spacer") { Box(Modifier.height(48.dp)) }
         }
     }
 }
@@ -215,47 +214,27 @@ private fun Hero(
             alignment = Alignment.TopCenter,
             modifier = Modifier.fillMaxSize(),
         )
-        // Two scrims: one from the left so the copy always has a dark bed to sit
-        // on, one from the bottom so the hero melts into the first shelf.
-        Box(
-            Modifier.fillMaxSize().background(
-                Brush.horizontalGradient(
-                    0f to Background,
-                    0.42f to Background.copy(alpha = 0.82f),
-                    0.78f to Color.Transparent,
-                ),
-            )
-        )
-        Box(
-            Modifier.fillMaxSize().background(
-                Brush.verticalGradient(
-                    0f to Background.copy(alpha = 0.45f),
-                    0.35f to Color.Transparent,
-                    0.72f to Background.copy(alpha = 0.75f),
-                    1f to Background,
-                ),
-            )
-        )
+        HeroScrims()
 
         Column(
             Modifier
                 .align(Alignment.BottomStart)
-                .padding(start = ScreenPadding, end = ScreenPadding, bottom = 54.dp)
+                .padding(start = ScreenPadding, end = ScreenPadding, bottom = 60.dp)
                 .fillMaxWidth(0.56f),
         ) {
             Text(
                 item.displayTitle,
-                style = MaterialTheme.typography.displaySmall,
+                style = MaterialTheme.typography.displayLarge,
                 color = Color.White,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
             Row(
-                Modifier.padding(top = 10.dp),
+                Modifier.padding(top = 16.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
             ) {
-                if (item.voteAverage > 0) RatingPill(item.voteAverage)
+                if (item.voteAverage > 0) RatingBadge(item.voteAverage)
                 Text(
                     listOfNotNull(item.year, genreNames(item.genreIds).takeIf { it.isNotBlank() })
                         .joinToString("  ·  "),
@@ -267,21 +246,33 @@ private fun Hero(
                 Text(
                     item.overview,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = Muted,
+                    color = Color.White.copy(alpha = 0.8f),
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(top = 12.dp),
+                    modifier = Modifier.padding(top = 14.dp),
                 )
             }
             Row(
                 Modifier
-                    .padding(top = 20.dp)
+                    .padding(top = 22.dp)
                     // Up from the hero buttons reaches the floating nav bar.
                     .then(navFocus?.let { Modifier.focusProperties { up = it } } ?: Modifier),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                TvButton("▶  Play", onClick = onPlay, focusRequester = playFocus, onFocused = onFocused)
-                TvButton("Details", onClick = onDetails, filled = false, onFocused = onFocused)
+                TvButton(
+                    label = "Play",
+                    icon = Icons.Filled.PlayArrow,
+                    onClick = onPlay,
+                    focusRequester = playFocus,
+                    onFocused = onFocused,
+                )
+                TvButton(
+                    label = "More info",
+                    icon = Icons.Filled.Info,
+                    onClick = onDetails,
+                    filled = false,
+                    onFocused = onFocused,
+                )
             }
         }
 
@@ -289,32 +280,16 @@ private fun Hero(
         // hero owns the screen.
         if (showScrollHint) {
             Text(
-                "▾  More below",
+                "▾   More below",
                 style = MaterialTheme.typography.labelMedium,
-                color = Muted.copy(alpha = 0.7f),
-                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 30.dp),
+                color = Muted,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 24.dp)
+                    .glass(PillShape)
+                    .padding(horizontal = 16.dp, vertical = 7.dp),
             )
         }
-    }
-}
-
-/** "★ 8.4" — the one number people actually scan for. */
-@Composable
-private fun RatingPill(rating: Double) {
-    Row(
-        Modifier
-            .clip(RoundedCornerShape(6.dp))
-            .background(Star.copy(alpha = 0.16f))
-            .padding(horizontal = 10.dp, vertical = 5.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text("★ ", style = MaterialTheme.typography.labelLarge, color = Star)
-        Text(
-            String.format("%.1f", rating),
-            style = MaterialTheme.typography.labelLarge,
-            color = Star,
-            fontWeight = FontWeight.Bold,
-        )
     }
 }
 
@@ -330,7 +305,7 @@ private fun HeroError(height: Dp) {
                 "Check the TV's network connection, then press Back and reopen the app.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = Muted,
-                modifier = Modifier.padding(top = 8.dp),
+                modifier = Modifier.padding(top = 10.dp),
             )
         }
     }

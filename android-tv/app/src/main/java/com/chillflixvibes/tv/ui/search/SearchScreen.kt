@@ -1,6 +1,7 @@
 package com.chillflixvibes.tv.ui.search
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
@@ -30,6 +32,8 @@ import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
@@ -44,6 +48,8 @@ import com.chillflixvibes.tv.ui.components.Loading
 import com.chillflixvibes.tv.ui.components.ScreenPadding
 import com.chillflixvibes.tv.ui.components.requestFocusWhenReady
 import com.chillflixvibes.tv.ui.theme.Background
+import com.chillflixvibes.tv.ui.theme.ControlShape
+import com.chillflixvibes.tv.ui.theme.Hairline
 import com.chillflixvibes.tv.ui.theme.Muted
 import com.chillflixvibes.tv.ui.theme.Primary
 import com.chillflixvibes.tv.ui.theme.Surface
@@ -71,6 +77,7 @@ fun SearchScreen(
     val fieldFocus = contentFocus
 
     var query by remember { mutableStateOf("") }
+    var fieldFocused by remember { mutableStateOf(false) }
     var results by remember { mutableStateOf<List<Pair<MediaItem, MediaType>>>(emptyList()) }
     var loading by remember { mutableStateOf(false) }
 
@@ -100,21 +107,38 @@ fun SearchScreen(
             value = query,
             onValueChange = { query = it },
             singleLine = true,
+            shape = ControlShape,
             label = { Text("Search movies & shows") },
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
             // Pressing the IME's search key drops focus into the results grid.
             keyboardActions = KeyboardActions(onSearch = { focusManager.moveFocus(FocusDirection.Down) }),
             textStyle = MaterialTheme.typography.bodyLarge,
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = Primary,
-                unfocusedBorderColor = Muted,
+                focusedTextColor = Color.White,
+                unfocusedTextColor = Color.White,
+                focusedBorderColor = Color.Transparent,
+                unfocusedBorderColor = Hairline,
                 focusedContainerColor = Surface,
                 unfocusedContainerColor = Surface,
+                cursorColor = Primary,
+                focusedLabelColor = Color.White,
+                unfocusedLabelColor = Muted,
             ),
             modifier = Modifier
-                .padding(horizontal = ScreenPadding, vertical = 12.dp)
+                .padding(horizontal = ScreenPadding - 7.dp, vertical = 8.dp)
+                // The same ring every other control wears. M3's own focused
+                // indicator is a 2dp line sized for a pointer, and this has to
+                // read from a couch — so the field's border is left neutral and
+                // the ring is drawn around it instead.
+                .border(
+                    width = 3.dp,
+                    color = if (fieldFocused) Primary else Color.Transparent,
+                    shape = RoundedCornerShape(21.dp),
+                )
+                .padding(7.dp)
                 .fillMaxWidth(0.6f)
                 .then(navFocus?.let { Modifier.focusProperties { up = it } } ?: Modifier)
+                .onFocusChanged { fieldFocused = it.isFocused }
                 .focusRequester(fieldFocus),
         )
 
@@ -123,17 +147,19 @@ fun SearchScreen(
             query.trim().length < 2 -> Hint("Type at least two letters to search.")
             results.isEmpty() -> Hint("No results for \"${query.trim()}\".")
             else -> LazyVerticalGrid(
-                columns = GridCells.Adaptive(160.dp),
+                columns = GridCells.Adaptive(150.dp),
                 modifier = Modifier.fillMaxSize().focusGroup(),
-                contentPadding = PaddingValues(start = ScreenPadding, end = ScreenPadding, top = 8.dp, bottom = 32.dp),
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                verticalArrangement = Arrangement.spacedBy(18.dp),
+                contentPadding = PaddingValues(start = ScreenPadding, end = ScreenPadding, top = 14.dp, bottom = 40.dp),
+                horizontalArrangement = Arrangement.spacedBy(18.dp),
+                verticalArrangement = Arrangement.spacedBy(22.dp),
             ) {
                 items(results, key = { (item, type) -> "${type.slug}-${item.id}" }) { (item, type) ->
                     FocusableCard(
                         imageUrl = TmdbImage.url(item.posterPath),
                         title = item.displayTitle,
-                        subtitle = listOfNotNull(item.year, if (type == MediaType.TV) "TV" else null).joinToString(" · "),
+                        subtitle = listOfNotNull(item.year, if (type == MediaType.TV) "TV" else "Movie")
+                            .joinToString("  ·  "),
+                        rating = item.voteAverage,
                         width = null,
                         onClick = { onOpen(type, item.id) },
                     )
@@ -146,6 +172,6 @@ fun SearchScreen(
 @Composable
 private fun Hint(message: String) {
     Box(Modifier.fillMaxSize().padding(ScreenPadding), contentAlignment = Alignment.Center) {
-        Text(message, style = MaterialTheme.typography.bodyLarge, color = Muted)
+        Text(message, style = MaterialTheme.typography.titleMedium, color = Muted)
     }
 }

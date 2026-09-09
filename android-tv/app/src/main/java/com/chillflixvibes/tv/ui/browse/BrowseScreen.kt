@@ -120,8 +120,8 @@ fun BrowseScreen(
                 .fillMaxWidth()
                 .then(navFocus?.let { Modifier.focusProperties { up = it } } ?: Modifier)
                 .focusGroup(),
-            contentPadding = PaddingValues(horizontal = ScreenPadding, vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            contentPadding = PaddingValues(horizontal = ScreenPadding, vertical = 14.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             itemsIndexed(presets, key = { _, item -> item.name }) { index, item ->
                 TvChip(
@@ -139,23 +139,27 @@ fun BrowseScreen(
             items.isEmpty() && failed -> EmptyState("Couldn't load ${preset.name}. Check the TV's connection.")
             items.isEmpty() -> EmptyState("Nothing matched ${preset.name}.")
             else -> LazyVerticalGrid(
-                columns = GridCells.Adaptive(160.dp),
+                columns = GridCells.Adaptive(150.dp),
                 state = gridState,
                 modifier = Modifier.fillMaxSize().focusGroup(),
                 contentPadding = PaddingValues(
                     start = ScreenPadding,
                     end = ScreenPadding,
-                    top = 12.dp,
-                    bottom = 32.dp,
+                    top = 14.dp,
+                    bottom = 40.dp,
                 ),
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                verticalArrangement = Arrangement.spacedBy(18.dp),
+                horizontalArrangement = Arrangement.spacedBy(18.dp),
+                verticalArrangement = Arrangement.spacedBy(22.dp),
             ) {
                 items(items, key = { it.id }) { item ->
                     FocusableCard(
                         imageUrl = TmdbImage.url(item.posterPath),
                         title = item.displayTitle,
-                        subtitle = item.year,
+                        subtitle = listOfNotNull(
+                            item.year,
+                            if (item.mediaType(preset.type) == MediaType.TV) "TV" else "Movie",
+                        ).joinToString("  ·  "),
+                        rating = item.voteAverage,
                         width = null, // fill the grid cell
                         onClick = { onOpen(item.mediaType(preset.type), item.id) },
                     )
@@ -168,6 +172,6 @@ fun BrowseScreen(
 @Composable
 private fun EmptyState(message: String) {
     Box(Modifier.fillMaxSize().padding(ScreenPadding), contentAlignment = Alignment.Center) {
-        Text(message, style = MaterialTheme.typography.bodyLarge, color = Muted)
+        Text(message, style = MaterialTheme.typography.titleMedium, color = Muted)
     }
 }

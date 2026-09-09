@@ -38,11 +38,11 @@ class WatchStore(context: Context) {
     private val json = Json { ignoreUnknownKeys = true }
 
     init {
-        // Locally stored state is keyed by *position* in the player lineup, so
-        // reordering the lineup silently repoints every saved preference at a
-        // different provider. Rather than migrate, drop it: bump SCHEMA
-        // whenever the lineup or the stored shape changes and the next launch
-        // starts clean.
+        // Rather than migrate stored state whose shape has changed, drop it:
+        // bump SCHEMA and the next launch starts clean. Version 3 is where the
+        // player preference stopped being a position in the lineup and became a
+        // provider id, which is why a reorder no longer needs one — a position
+        // meant a different provider afterwards, a provider id does not.
         if (prefs.getInt(SCHEMA, 0) != SCHEMA_VERSION) {
             prefs.edit().clear().putInt(SCHEMA, SCHEMA_VERSION).apply()
         }
@@ -60,12 +60,18 @@ class WatchStore(context: Context) {
     fun hasProgress(type: MediaType, id: Int): Boolean = prefs.contains(seasonKey(type, id))
 
     /**
-     * The player the user last picked, stored by stable id rather than by
-     * position. An unset — or old, numeric — value falls back to the main
-     * player, which is what anyone upgrading should land on.
+     * The player the user last picked, stored by provider id — `vidlink`,
+     * `vidnest` and the rest of `Streams.kt` — rather than by position.
+     *
+     * Null is "no preference yet", and deliberately not a provider: the caller
+     * reads an id it cannot find in the current lineup as that lineup's own
+     * first player, so a null opens whichever provider leads the lineup in
+     * front of it — vidlink normally, vidnest on an anime one. Naming vidlink
+     * here instead would open anime on vidlink, since vidlink IS in the anime
+     * lineup, one slot down. An old, numeric value reads as null the same way.
      */
-    var preferredPlayer: String
-        get() = runCatching { prefs.getString(PREFERRED_SERVER, null) }.getOrNull() ?: PLAYER_MAIN
+    var preferredPlayer: String?
+        get() = runCatching { prefs.getString(PREFERRED_SERVER, null) }.getOrNull()
         set(value) = prefs.edit().putString(PREFERRED_SERVER, value).apply()
 
     /**
@@ -99,7 +105,7 @@ class WatchStore(context: Context) {
         private const val SCHEMA = "schema"
 
         /** Bump to wipe locally stored playback state on the next launch. */
-        const val SCHEMA_VERSION = 2
+        const val SCHEMA_VERSION = 3
 
         private const val PREFERRED_SERVER = "preferred-player"
         private const val USE_PROXY = "use-proxy"

@@ -1,16 +1,6 @@
 import SwiftUI
 import WebKit
 
-/// Playback.
-///
-/// The stream providers are embed pages rather than direct video URLs, so the
-/// film plays in a WKWebView pointed at the site's chrome-less `/embed` route —
-/// the same page the TV app loads. Keeping every client on that one route means
-/// a change to the player lineup reaches all of them without shipping an app.
-///
-/// Unlike Android, there is no engine problem to work around here: WKWebView is
-/// current Safari, and a Mac has a pointer, so the player's own controls are
-/// directly usable.
 /// What to play. `WindowGroup(for:)` needs a Codable value, and carrying the
 /// whole request means the window can be restored by the system.
 struct PlaybackTarget: Codable, Hashable, Identifiable {
@@ -24,6 +14,16 @@ struct PlaybackTarget: Codable, Hashable, Identifiable {
     var backdropPath: String?
 }
 
+/// Playback.
+///
+/// The stream providers are embed pages rather than direct video URLs, so the
+/// film plays in a WKWebView pointed at the site's chrome-less `/embed` route —
+/// the same page the TV app loads. Keeping every client on that one route means
+/// a change to the player lineup reaches all of them without shipping an app.
+///
+/// Unlike Android, there is no engine problem to work around here: WKWebView is
+/// current Safari, and a Mac has a pointer, so the player's own controls are
+/// directly usable.
 struct PlayerWindow: View {
     let target: PlaybackTarget
 
@@ -33,28 +33,21 @@ struct PlayerWindow: View {
     private var season: Int { target.season }
     private var episode: Int { target.episode }
     private var isAnime: Bool { target.isAnime }
-    @State private var player = playerMain
+    @State private var picked: PlayerChoice?
     @State private var anilistId: Int?
     @State private var resolved = false
 
     private var choices: [PlayerChoice] { players(for: type, isAnime: isAnime) }
 
+    /// The lineup's own first player until the viewer picks another. Not a
+    /// constant, because the lineups no longer agree on what leads them: anime
+    /// opens on vidnest and everything else on vidlink, and naming either one
+    /// here would open the other kind of title on the wrong provider.
+    private var player: PlayerChoice { picked ?? choices[0] }
+
     var body: some View {
         VStack(spacing: 0) {
-            HStack(spacing: 12) {
-                Text(title).font(.headline).lineLimit(1)
-                if type == .tv {
-                    Text("S\(season) · E\(episode)").font(.subheadline).foregroundStyle(Palette.accent)
-                }
-                Spacer()
-                Picker("", selection: $player) {
-                    ForEach(choices) { Text($0.label).tag($0) }
-                }
-                .pickerStyle(.segmented)
-                .frame(width: 320)
-            }
-            .padding(12)
-            .background(Palette.surface)
+            toolbar
 
             if resolved {
                 WebPlayer(url: embedURL(type: type, id: id, season: season, episode: episode,
@@ -63,11 +56,15 @@ struct PlayerWindow: View {
                 // has to reload the frame, not reuse the old one.
                 .id("\(player.id)-\(season)-\(episode)")
             } else {
-                ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
+                LoadingIndicator()
             }
         }
+        // The nav pill floats over this screen too, as it does over the web app's
+        // watch page, so the transport row starts below it rather than under it.
+        .padding(.top, Metric.navClearance)
         .frame(minWidth: 900, minHeight: 560)
         .background(Palette.background)
+        .navigationTitle(title)
         .task {
             // Anime resolves to a different provider, so hold the load until
             // the AniList lookup settles rather than briefly loading the wrong
@@ -84,6 +81,43 @@ struct PlayerWindow: View {
                     season: season, episode: episode
                 )
             )
+        }
+    }
+
+    /// What is playing on the left, which player is serving it on the right.
+    ///
+    /// The lineup is drawn as the same chips a detail page gives its seasons,
+    /// rather than as a segmented control: a segmented control fills its
+    /// selection with the system accent, and no chrome in this app is coloured.
+    private var toolbar: some View {
+        HStack(spacing: 12) {
+            Text(title)
+                .font(.system(size: 13.5, weight: .semibold))
+                .foregroundStyle(.white)
+                .lineLimit(1)
+
+            if type == .tv {
+                Text("S\(season) · E\(episode)")
+                    .font(.system(size: 12))
+                    .foregroundStyle(Palette.muted)
+                    .fixedSize()
+            }
+
+            Spacer(minLength: 16)
+
+            HStack(spacing: 8) {
+                ForEach(choices) { choice in
+                    Button(choice.label) { picked = choice }
+                        .buttonStyle(ChipButtonStyle(selected: choice == player))
+                }
+            }
+            .fixedSize()
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .background(Palette.surface)
+        .overlay(alignment: .bottom) {
+            Rectangle().fill(Palette.hairline).frame(height: 1)
         }
     }
 }
