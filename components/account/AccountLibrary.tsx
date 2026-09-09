@@ -13,6 +13,7 @@ import {
 } from "@/lib/tmdb/account-queries";
 import { MediaType } from "@/lib/tmdb/queries";
 import { useAccount } from "./AccountProvider";
+import { AccountPageShell, EmptyNotice, SignedOutNotice } from "./AccountPageShell";
 
 type LibraryKind = "watchlist" | "favorites" | "ratings";
 
@@ -57,49 +58,17 @@ export function AccountLibrary({ kind }: { kind: LibraryKind }) {
   const loading = movies.isPending || shows.isPending;
 
   return (
-    <div className="mx-auto max-w-[1600px] px-4 pb-16 pt-24 sm:px-6 sm:pt-28 lg:px-10">
-      <div className="flex flex-wrap items-baseline gap-3">
-        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">{title}</h1>
-        {account && !loading && (
-          <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-muted">
-            {items.length} {items.length === 1 ? "title" : "titles"}
-          </span>
-        )}
-      </div>
-      <p className="mt-2 text-muted">{blurb}</p>
-
+    <AccountPageShell title={title} blurb={blurb} count={account && !loading ? items.length : undefined}>
       {/* Three states, and they say different things. Not signed in is not the
           same as an empty list, and neither is the same as still loading. */}
       {!ready ? null : !account ? (
-        <SignedOut />
+        <SignedOutNotice message="Sign in with TMDB to keep a watchlist that follows you between your browser, your TV and your Mac." />
       ) : loading ? null : items.length === 0 ? (
-        <Empty message={empty} />
+        <EmptyNotice message={empty} />
       ) : (
         <MediaGrid className="mt-8" items={items} />
       )}
-    </div>
-  );
-}
-
-function SignedOut() {
-  return (
-    <div className="mt-10 rounded-2xl border border-white/10 bg-surface/60 p-8">
-      <p className="text-muted">Sign in with TMDB to keep a watchlist that follows you between your browser, your TV and your Mac.</p>
-      <a
-        href="/api/account/login"
-        className="mt-5 inline-flex rounded-xl bg-white px-6 py-3 text-sm font-semibold text-black transition-colors hover:bg-white/90"
-      >
-        Sign in with TMDB
-      </a>
-    </div>
-  );
-}
-
-function Empty({ message }: { message: string }) {
-  return (
-    <div className="mt-10 rounded-2xl border border-white/10 bg-surface/60 p-8">
-      <p className="text-muted">Nothing here yet. {message}</p>
-    </div>
+    </AccountPageShell>
   );
 }
 

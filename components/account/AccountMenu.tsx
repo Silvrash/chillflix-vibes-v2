@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Heart, ListVideo, LogOut, Star, User } from "lucide-react";
+import { Heart, ListPlus, ListVideo, LogOut, Sparkles, Star, User } from "lucide-react";
 import { getTMDBImageUrl } from "@/lib/tmdb/images";
 import { cn } from "@/lib/utils";
 import { useAccount } from "./AccountProvider";
@@ -12,6 +12,8 @@ const LINKS = [
   { href: "/my/watchlist", label: "Watchlist", icon: ListVideo },
   { href: "/my/favorites", label: "Favourites", icon: Heart },
   { href: "/my/ratings", label: "Ratings", icon: Star },
+  { href: "/my/lists", label: "Lists", icon: ListPlus },
+  { href: "/my/recommendations", label: "For you", icon: Sparkles },
 ];
 
 /**
@@ -49,7 +51,13 @@ export function AccountMenu() {
   return <SignedInMenu account={account} pathname={pathname || "/"} />;
 }
 
-function SignedInMenu({ account, pathname }: { account: NonNullable<ReturnType<typeof useAccount>["account"]>; pathname: string }) {
+function SignedInMenu({
+  account,
+  pathname,
+}: {
+  account: NonNullable<ReturnType<typeof useAccount>["account"]>;
+  pathname: string;
+}) {
   const [open, setOpen] = useState(false);
   const wrapper = useRef<HTMLDivElement>(null);
   const avatar = account.avatarPath ? getTMDBImageUrl(account.avatarPath, "w45") : "";

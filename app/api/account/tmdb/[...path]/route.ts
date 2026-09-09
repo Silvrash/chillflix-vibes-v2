@@ -39,6 +39,9 @@ const ALLOWED: Record<string, RegExp[]> = {
     /^(movie|tv)\/\d+\/account_states$/,
     /^4\/account\/[^/]+\/(lists|(movie|tv)\/(recommendations|watchlist|favorites|rated))$/,
     /^4\/list\/\d+$/,
+    // The only way to ask whether a title is on a list. `4/list/{id}` answers
+    // with one page of items, so scanning it would miss anything past page one.
+    /^4\/list\/\d+\/item_status$/,
   ],
   POST: [/^account\/\d+\/(favorite|watchlist)$/, /^(movie|tv)\/\d+\/rating$/, /^4\/list$/, /^4\/list\/\d+\/items$/],
   PUT: [/^4\/list\/\d+$/, /^4\/list\/\d+\/items$/],
@@ -83,7 +86,13 @@ async function handle(request: NextRequest, path: string[], method: string): Pro
   search.delete("api_key");
 
   const { url, token } = upstreamFor(joined, search, session);
-  const body = method === "GET" || method === "DELETE" ? undefined : await request.text();
+  // DELETE carries a body here: removing titles is `DELETE 4/list/{id}/items`
+  // with `{ items: [...] }`, and dropping it would delete nothing. An empty
+  // object is not a body anyone meant to send — axios spells a no-argument
+  // DELETE that way — so it is discarded, which leaves the rating delete the
+  // bodiless request it has always been.
+  const raw = method === "GET" ? "" : await request.text();
+  const body = raw === "{}" ? "" : raw;
 
   try {
     const upstream = await fetch(url, {

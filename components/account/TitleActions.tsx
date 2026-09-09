@@ -11,6 +11,7 @@ import {
 import type { MediaType } from "@/lib/tmdb/queries";
 import { cn } from "@/lib/utils";
 import { useAccount } from "./AccountProvider";
+import { AddToListMenu } from "./AddToListMenu";
 
 /**
  * Watchlist and favourite, for one title.
@@ -71,6 +72,10 @@ export function TitleActions({ type, id }: { type: MediaType; id: number }) {
         iconClassName={isFavorite ? "fill-current" : undefined}
         onClick={() => favorite.mutate({ account_id: account.accountId, media_type: type, media_id: id, favorite: !isFavorite })}
       />
+      {/* Rendered from here rather than from MediaDetail so the action row keeps
+          its one account-shaped hole, and so the row a signed-out visitor gets
+          stays exactly the row it is today. */}
+      <AddToListMenu type={type} id={id} />
     </>
   );
 }
