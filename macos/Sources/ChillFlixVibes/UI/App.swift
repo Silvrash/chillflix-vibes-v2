@@ -182,6 +182,13 @@ struct ContentView: View {
                 select: go,
                 back: path.isEmpty ? nil : { path.removeLast() }
             )
+            // The pill has to measure from the same top edge its screens do.
+            // They all ignore the inset the window reserves for a titlebar it
+            // asked not to have; the overlay did not, so the pill hung ~40pt
+            // lower than its own 14pt inset while `Metric.navClearance` was
+            // measured from the real top — the gap between them coming out
+            // different on a pushed screen, which is where it showed.
+            .ignoresSafeArea(edges: .top)
         }
     }
 
