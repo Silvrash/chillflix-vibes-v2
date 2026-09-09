@@ -126,11 +126,12 @@ struct ContentView: View {
         // Both of these float *over* the screen rather than taking a strip of
         // it, so a hero runs full-bleed underneath. Every screen that isn't led
         // by artwork starts `Metric.navClearance` down instead.
-        .overlay(alignment: .top) { NavPill(destination: destination, select: go) }
-        .overlay(alignment: .topLeading) {
-            if !path.isEmpty {
-                BackButton { path.removeLast() }
-            }
+        .overlay(alignment: .top) {
+            NavPill(
+                destination: destination,
+                select: go,
+                back: path.isEmpty ? nil : { path.removeLast() }
+            )
         }
     }
 
@@ -149,12 +150,15 @@ struct ContentView: View {
 /// top-left corner of a window with no titlebar. The window's minimum width is
 /// far wider than this pill plus twice that corner, so the two can never meet —
 /// which is what keeps the buttons clickable with no chrome reserved for them.
-/// The way back out of a pushed screen.
+/// The way back out of a pushed screen, living inside the nav pill.
 ///
-/// Drawn rather than left to the window toolbar, which reserves a strip across
-/// the top to hold it. Inset past the traffic lights, which `.hiddenTitleBar`
-/// leaves floating in that same corner — they are the one thing up here the app
-/// does not draw and cannot move.
+/// It is drawn rather than left to the window toolbar, which reserves a strip
+/// across the top of the window to hold it. Putting it in the pill rather than
+/// floating it in the corner is what keeps it off every screen's own content:
+/// a detail page, the player and a browse screen opened from a network tile all
+/// draw their title in the top-left, and a chevron parked there lands on the
+/// words. The corner is left to the traffic lights, which `.hiddenTitleBar`
+/// leaves floating there and which the app cannot move.
 private struct BackButton: View {
     let action: () -> Void
 
@@ -163,18 +167,18 @@ private struct BackButton: View {
     var body: some View {
         Button(action: action) {
             Image(systemName: "chevron.left")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(.white)
-                .frame(width: 30, height: 30)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(hovering ? .white : Palette.muted)
+                .frame(width: 30, height: 32)
+                .background(
+                    RoundedRectangle(cornerRadius: 9, style: .continuous)
+                        .fill(hovering ? Palette.glass : .clear)
+                )
         }
         .buttonStyle(.plain)
-        .glass(radius: 15, fill: Color.black.opacity(hovering ? 0.55 : 0.4))
         .onHover { hovering = $0 }
         .animation(.easeOut(duration: 0.12), value: hovering)
-        .padding(.leading, 92)
-        .padding(.top, 14)
-        // Cmd+[ and the swipe-back gesture both expect this to exist; the
-        // toolbar's own chevron is gone.
+        .help("Back")
         .keyboardShortcut("[", modifiers: .command)
     }
 }
@@ -182,9 +186,19 @@ private struct BackButton: View {
 private struct NavPill: View {
     let destination: Destination
     let select: (Destination) -> Void
+    /// Non-nil while there is somewhere to go back to.
+    var back: (() -> Void)?
 
     var body: some View {
         HStack(spacing: 6) {
+            if let back {
+                BackButton(action: back)
+                Rectangle()
+                    .fill(Palette.hairline)
+                    .frame(width: 1, height: 20)
+                    .padding(.horizontal, 2)
+            }
+
             brand
 
             ForEach(Destination.pages, id: \.self) { page in
