@@ -1,7 +1,10 @@
+import AppKit
 import SwiftUI
 
 @main
 struct ChillFlixVibesApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) private var delegate
+
     var body: some Scene {
         WindowGroup {
             ContentView()
@@ -14,6 +17,44 @@ struct ChillFlixVibesApp: App {
         .windowStyle(.hiddenTitleBar)
         .commands { CommandGroup(replacing: .newItem) {} }
 
+    }
+}
+
+/// Puts the window back on a screen the viewer can see.
+///
+/// AppKit restores a window to the frame it last had, and does not check that
+/// the frame is still reachable. Unplug the display it was on, or open the app
+/// on a machine whose screens are arranged differently, and it comes back at
+/// coordinates that no longer exist — off the left edge, or on a screen that is
+/// not there. The window is then only recoverable through Window > Zoom, which
+/// a viewer who cannot see the window has no reason to look for.
+///
+/// A restored frame is honoured whenever it genuinely overlaps a screen; this
+/// only steps in when it does not.
+final class AppDelegate: NSObject, NSApplicationDelegate {
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        // After the run loop turn in which SwiftUI restores the frame, or the
+        // clamp would be overwritten by the restore it is correcting.
+        DispatchQueue.main.async { NSApp.windows.forEach(Self.bringOnScreen) }
+    }
+
+    private static func bringOnScreen(_ window: NSWindow) {
+        let screens = NSScreen.screens.map(\.visibleFrame)
+        guard !screens.isEmpty else { return }
+
+        // "Visible" means a decent piece of it, not a sliver: a window showing
+        // ten pixels down the edge of the screen is as lost as one showing none.
+        let showing = screens.map { $0.intersection(window.frame) }.map { $0.width * $0.height }.max() ?? 0
+        let enough = window.frame.width * window.frame.height * 0.35
+        guard showing < enough else { return }
+
+        let target = (NSScreen.main ?? NSScreen.screens[0]).visibleFrame
+        var frame = window.frame
+        frame.size.width = min(frame.width, target.width)
+        frame.size.height = min(frame.height, target.height)
+        frame.origin.x = target.midX - frame.width / 2
+        frame.origin.y = target.midY - frame.height / 2
+        window.setFrame(frame, display: true)
     }
 }
 
@@ -108,19 +149,28 @@ struct ContentView: View {
                 }
             }
             .navigationDestination(for: Route.self) { route in
-                switch route {
-                case let .detail(type, id): DetailView(type: type, id: id)
-                case let .play(target): PlayerWindow(target: target)
-                case let .network(network): BrowseView(section: .tv, initialNetwork: network)
+                Group {
+                    switch route {
+                    case let .detail(type, id): DetailView(type: type, id: id)
+                    case let .play(target): PlayerWindow(target: target)
+                    case let .network(network): BrowseView(section: .tv, initialNetwork: network)
+                    }
                 }
+                // Every pushed screen hides it again for itself. The modifier on
+                // the stack below covers the root only: a destination is handed
+                // its own toolbar for the back chevron, so hiding it once out
+                // there leaves every pushed screen inset by a strip the root
+                // does not have — the pill and the heading both sitting lower on
+                // a detail page than on home, which is exactly how it looked.
+                .toolbar(.hidden, for: .windowToolbar)
             }
         }
-        // Pushing a screen makes SwiftUI put its back chevron in a window
-        // toolbar, and the toolbar takes a strip of the window to hold it —
-        // a grey band above a detail page whose backdrop is meant to run to the
+        // The root's own. Pushing a screen makes SwiftUI put its back chevron in
+        // a window toolbar, and the toolbar takes a strip of the window to hold
+        // it — a grey band above a page whose backdrop is meant to run to the
         // top edge, on a window that asked for no titlebar in the first place.
-        // Hiding it and drawing the chevron ourselves costs one control and
-        // gives the artwork the whole window back.
+        // Hiding it and drawing the chevron ourselves gives the artwork the
+        // whole window back.
         .toolbar(.hidden, for: .windowToolbar)
         .background(Palette.background)
         // Both of these float *over* the screen rather than taking a strip of
