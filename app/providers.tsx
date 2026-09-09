@@ -1,6 +1,7 @@
 "use client";
 
 import { QueryClientProvider } from "@tanstack/react-query";
+import { AccountProvider } from "@/components/account";
 import { SearchOverlayProvider } from "@/components/search";
 import { getQueryClient } from "@/lib/tmdb/query-client";
 
@@ -12,7 +13,12 @@ export function Providers({ children }: { children: React.ReactNode }) {
   // open/closed state. The provider renders nothing on `/embed` on its own.
   return (
     <QueryClientProvider client={queryClient}>
-      <SearchOverlayProvider>{children}</SearchOverlayProvider>
+      {/* Account sits inside the query client because its controls fetch through it, and above
+          everything else because the navbar, the detail page and the home rails all read the
+          same session. */}
+      <AccountProvider>
+        <SearchOverlayProvider>{children}</SearchOverlayProvider>
+      </AccountProvider>
     </QueryClientProvider>
   );
 }

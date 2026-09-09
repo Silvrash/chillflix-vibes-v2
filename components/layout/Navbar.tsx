@@ -1,5 +1,6 @@
 "use client";
 
+import { AccountMenu } from "@/components/account";
 import { SearchTrigger } from "@/components/search";
 import { cn } from "@/lib/utils";
 import { Clapperboard, Download, Film, Home, Sparkles, Tv } from "lucide-react";
@@ -67,6 +68,11 @@ export function Navbar() {
             as a fifth section. At 375px every label is gone and this is one more icon in the row. */}
         <span aria-hidden="true" className="mx-0.5 h-5 w-px shrink-0 bg-white/10" />
         <SearchTrigger />
+
+        {/* Signing in is optional and always has been, so this is the last thing in the row
+            rather than a section of its own — and it renders nothing at all until the session
+            is known, so the pill does not resize under the pointer. */}
+        <AccountMenu />
       </div>
     </header>
   );

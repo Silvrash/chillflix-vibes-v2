@@ -17,12 +17,18 @@ export type GetQueryOptions<TResponse, TVariables, TData = TResponse, TError = u
 
 export function getQuery<TResponse, TVariables, TData = TResponse>(
   path: string,
+  /** Defaults to the public proxy; account endpoints pass the credentialed one. */
+  baseUrl?: string,
 ): (o?: Partial<GetQueryOptions<TResponse, TVariables, TData>>) => GetQueryOptions<TResponse, TVariables, TData> {
   return (options) => {
     return {
+      // `variables` carries the account id on every account endpoint, so the key
+      // is account-scoped without anything further. That matters because the
+      // browser QueryClient is a module singleton with a 30-minute gcTime: a key
+      // shared between two accounts would hand one viewer the other's data.
       queryKey: [path, options?.variables],
       queryFn: async ({ signal }) => {
-        return tmdbGetFn<TResponse, TVariables>(path, { signal, variables: options?.variables });
+        return tmdbGetFn<TResponse, TVariables>(path, { signal, variables: options?.variables, baseUrl });
       },
       ...options,
     };
@@ -89,11 +95,12 @@ export interface MutationQueryOptions<TResponse, TVariables, TError = unknown> e
 
 export function postMutation<TResponse, TVariables>(
   path: string,
+  baseUrl?: string,
 ): (o?: Omit<MutationQueryOptions<TResponse, TVariables>, "mutationFn">) => MutationQueryOptions<TResponse, TVariables> {
   return (options) => {
     return {
       mutationFn: async (variables) => {
-        return tmdbPostFn<TResponse, TVariables>(path, { variables });
+        return tmdbPostFn<TResponse, TVariables>(path, { variables, baseUrl: options?.axios?.baseUrl ?? baseUrl });
       },
       ...options,
     };
@@ -102,11 +109,12 @@ export function postMutation<TResponse, TVariables>(
 
 export function putMutation<TResponse, TVariables>(
   path: string,
+  baseUrl?: string,
 ): (o?: Omit<MutationQueryOptions<TResponse, TVariables>, "mutationFn">) => MutationQueryOptions<TResponse, TVariables> {
   return (options) => {
     return {
       mutationFn: async (variables) => {
-        return tmdbPutFn<TResponse, TVariables>(path, { variables });
+        return tmdbPutFn<TResponse, TVariables>(path, { variables, baseUrl: options?.axios?.baseUrl ?? baseUrl });
       },
       ...options,
     };
@@ -115,11 +123,12 @@ export function putMutation<TResponse, TVariables>(
 
 export function patchMutation<TResponse, TVariables>(
   path: string,
+  baseUrl?: string,
 ): (o?: Omit<MutationQueryOptions<TResponse, TVariables>, "mutationFn">) => MutationQueryOptions<TResponse, TVariables> {
   return (options) => {
     return {
       mutationFn: async (variables) => {
-        return tmdbPatchFn<TResponse, TVariables>(path, { variables });
+        return tmdbPatchFn<TResponse, TVariables>(path, { variables, baseUrl: options?.axios?.baseUrl ?? baseUrl });
       },
       ...options,
     };
@@ -128,11 +137,12 @@ export function patchMutation<TResponse, TVariables>(
 
 export function deleteMutation<TResponse, TVariables>(
   path: string,
+  baseUrl?: string,
 ): (o?: Omit<MutationQueryOptions<TResponse, TVariables>, "mutationFn">) => MutationQueryOptions<TResponse, TVariables> {
   return (options) => {
     return {
       mutationFn: async (variables) => {
-        return tmdbDeleteFn<TResponse, TVariables>(path, { variables });
+        return tmdbDeleteFn<TResponse, TVariables>(path, { variables, baseUrl: options?.axios?.baseUrl ?? baseUrl });
       },
       ...options,
     };

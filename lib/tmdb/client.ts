@@ -17,11 +17,19 @@ export interface QueryFnOptions<TVariables> {
   variables?: TVariables;
   signal?: AbortSignal;
   page?: number;
+  /**
+   * Which proxy to talk to. Defaults to the public one; account endpoints pass
+   * `/api/account/tmdb`, which attaches the viewer's credentials and refuses to
+   * be cached. They are separate routes precisely so a per-user response can
+   * never reach the public one's shared CDN cache.
+   */
+  baseUrl?: string;
 }
 
 export interface MutationFnOptions<TVariables> {
   variables?: TVariables;
   signal?: AbortSignal;
+  baseUrl?: string;
 }
 
 function convertVariablesToQueryParams<TVariables>(variables?: TVariables) {
@@ -37,7 +45,7 @@ function convertVariablesToQueryParams<TVariables>(variables?: TVariables) {
 }
 
 export async function tmdbGetFn<TResponse, TVariables>(path: string, options: QueryFnOptions<TVariables>): Promise<TResponse> {
-  let { variables, signal, page } = options;
+  let { variables, signal, page, baseUrl } = options;
 
   if (page && variables) {
     variables = { ...variables, page } as TVariables;
@@ -47,7 +55,7 @@ export async function tmdbGetFn<TResponse, TVariables>(path: string, options: Qu
     ? getFormattedMutationURLPathAndVariables(path, variables)
     : [path, variables];
   const params = convertVariablesToQueryParams(newVariables);
-  const axiosSecure = getTMDBAxiosInstance();
+  const axiosSecure = getTMDBAxiosInstance(baseUrl);
   const response = await axiosSecure.get<TResponse>(`${urlPath}${params}`, { signal });
   return response.data;
 }
@@ -56,21 +64,21 @@ export async function tmdbPostFn<TResponse, TVariables>(
   path: string,
   options: MutationFnOptions<TVariables>,
 ): Promise<TResponse> {
-  const { variables, signal } = options;
+  const { variables, signal, baseUrl } = options;
   const [urlPath, newVariables] = path.includes("[")
     ? getFormattedMutationURLPathAndVariables(path, variables)
     : [path, variables];
-  const axiosSecure = getTMDBAxiosInstance();
+  const axiosSecure = getTMDBAxiosInstance(baseUrl);
   const response = await axiosSecure.post<TResponse>(urlPath, newVariables, { signal });
   return response.data;
 }
 
 export async function tmdbPutFn<TResponse, TVariables>(path: string, options: MutationFnOptions<TVariables>): Promise<TResponse> {
-  const { variables, signal } = options;
+  const { variables, signal, baseUrl } = options;
   const [urlPath, newVariables] = path.includes("[")
     ? getFormattedMutationURLPathAndVariables(path, variables)
     : [path, variables];
-  const axiosSecure = getTMDBAxiosInstance();
+  const axiosSecure = getTMDBAxiosInstance(baseUrl);
   const response = await axiosSecure.put<TResponse>(urlPath, newVariables, { signal });
   return response.data;
 }
@@ -79,11 +87,11 @@ export async function tmdbDeleteFn<TResponse, TVariables>(
   path: string,
   options: MutationFnOptions<TVariables>,
 ): Promise<TResponse> {
-  const { variables, signal } = options;
+  const { variables, signal, baseUrl } = options;
   const [urlPath, newVariables] = path.includes("[")
     ? getFormattedMutationURLPathAndVariables(path, variables)
     : [path, variables];
-  const axiosSecure = getTMDBAxiosInstance();
+  const axiosSecure = getTMDBAxiosInstance(baseUrl);
   const response = await axiosSecure.delete<TResponse>(urlPath, { data: newVariables, signal });
   return response.data;
 }
@@ -92,12 +100,12 @@ export async function tmdbPatchFn<TResponse, TVariables>(
   path: string,
   options: MutationFnOptions<TVariables>,
 ): Promise<TResponse> {
-  const { variables, signal } = options;
+  const { variables, signal, baseUrl } = options;
   const [urlPath, newVariables] = path.includes("[")
     ? getFormattedMutationURLPathAndVariables(path, variables)
     : [path, variables];
-  const axiosSecure = getTMDBAxiosInstance();
-  const response = await axiosSecure.patch<TResponse>(urlPath, { data: newVariables, signal });
+  const axiosSecure = getTMDBAxiosInstance(baseUrl);
+  const response = await axiosSecure.patch<TResponse>(urlPath, newVariables, { signal });
   return response.data;
 }
 

@@ -5,6 +5,7 @@ import { Hero } from "./Hero";
 import { NetworkRail } from "./NetworkRail";
 import { ShownTitlesProvider } from "./shown-titles";
 import { TrendingRail } from "./TrendingRail";
+import { WatchlistRail } from "./WatchlistRail";
 import { HOME_DISCOVER_RAILS, HOME_NETWORK_TILES } from "./rails";
 
 /**
@@ -20,7 +21,7 @@ import { HOME_DISCOVER_RAILS, HOME_NETWORK_TILES } from "./rails";
  * (./rail-items.ts). The rows this registry really carries are the /discover ones below the fold,
  * whose server HTML is a skeleton either way.
  */
-const ORDER = { topMovies: 0, topShows: 1, hero: 2, firstDiscover: 3 };
+const ORDER = { watchlist: 0, topMovies: 1, topShows: 2, hero: 3, firstDiscover: 4 };
 
 /**
  * The home page: a hero to look at, then curated rows to browse. Filtering lives on /movies,
@@ -62,6 +63,10 @@ export function HomeRails() {
               names the media type because the filter behind it only exists for series
               (./NetworkRail.tsx, lib/networks.ts). */}
           <NetworkRail title="TV Shows by Network" tiles={HOME_NETWORK_TILES} />
+
+          {/* Ahead of the Top 10s deliberately: a list the viewer built by hand outranks a
+              ranking, and it renders nothing at all when signed out or empty. */}
+          <WatchlistRail order={ORDER.watchlist} />
 
           <TrendingRail order={ORDER.topMovies} title="Top 10 Movies" mediaType={MediaType.movie} href="/movies" />
           <TrendingRail order={ORDER.topShows} title="Top 10 TV Shows" mediaType={MediaType.tv} href="/tv" />

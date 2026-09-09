@@ -1,5 +1,6 @@
 "use client";
 
+import { TitleActions } from "@/components/account";
 import { Spinner } from "@/components/ui/Spinner";
 import { tmdbGetFn } from "@/lib/tmdb/client";
 import { getTMDBImageUrl } from "@/lib/tmdb/images";
@@ -307,6 +308,9 @@ function DetailHero({
               </button>
             )}
             {downloads.length > 0 && <DownloadMenu downloads={downloads} />}
+            {/* Renders nothing when signed out, so this row stays byte-identical for anyone
+                who never signs in. It already wraps, so two more buttons need no layout change. */}
+            <TitleActions type={type} id={id} />
           </div>
         </div>
       </div>
