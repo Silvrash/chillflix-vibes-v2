@@ -14,7 +14,7 @@ struct DetailView: View {
             ScrollView {
                 if let details {
                     LazyVStack(alignment: .leading, spacing: Metric.sectionGap) {
-                        header(details, height: min(600, max(400, proxy.size.height * 0.72)))
+                        header(details, height: heroHeight(for: proxy.size.height))
 
                         if type == .tv, !details.airedSeasons.isEmpty {
                             episodesSection(details)

@@ -26,6 +26,17 @@ enum Metric {
     static let navClearance: CGFloat = 84
 }
 
+/// How tall a hero runs, given the window it is in.
+///
+/// Shared by the home page and a title's detail page, which had drifted to two
+/// formulas — the detail hero ran taller on the same window, so moving between
+/// them shifted everything below by the difference. Tall enough to be the thing
+/// you look at, short enough that the row beneath it still shows, which is what
+/// says the page keeps going.
+func heroHeight(for available: CGFloat) -> CGFloat {
+    min(560, max(360, available * 0.66))
+}
+
 /// A translucent fill behind a hairline — the surface the web app floats over
 /// artwork, for anything that has to stay legible while the poster behind it
 /// changes.

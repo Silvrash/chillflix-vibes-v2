@@ -39,12 +39,6 @@ struct HomeView: View {
         }
     }
 
-    /// Tall enough to be the thing you look at, short enough that the first rail
-    /// still shows below it — which is what says the page keeps going.
-    private func heroHeight(for available: CGFloat) -> CGFloat {
-        min(560, max(360, available * 0.66))
-    }
-
     @ViewBuilder private func hero(height: CGFloat) -> some View {
         if let item = trending.first {
             HeroBanner(item: item, height: height)
