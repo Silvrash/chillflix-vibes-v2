@@ -24,6 +24,23 @@ enum Metric {
     /// Change the pill and this moves with it. Screens led by artwork skip it on
     /// purpose: there the picture is meant to run underneath.
     static let navClearance: CGFloat = 84
+
+    /// How wide the nav pill is, measured — the room down the middle of the top
+    /// band that nothing else may occupy.
+    ///
+    /// The pill is centred and cannot be moved, so a screen putting its own
+    /// controls in that band has to know what it is working around: the halves
+    /// either side are all it has. Measured off the built app rather than
+    /// derived, because the pill's width is the sum of five labels in a system
+    /// font and no arithmetic here would survive a font change any better.
+    /// Generous by a few points on purpose, and like `navClearance` it moves
+    /// when the pill does.
+    static let navPillWidth: CGFloat = 660
+
+    /// How far in the traffic lights reach. `.hiddenTitleBar` leaves them
+    /// floating in the corner and the app cannot move them, so anything drawn
+    /// top-left starts past this.
+    static let trafficLightInset: CGFloat = 92
 }
 
 /// How tall a hero runs, given the window it is in.
