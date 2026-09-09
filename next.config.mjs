@@ -6,6 +6,12 @@ const nextConfig = {
     // revisits are instant instead of refetching.
     staleTimes: { dynamic: 30, static: 300 },
   },
+  // /tv-app became /install when the page grew past the television. Anything
+  // already shared — a link, a QR code, an address typed into a TV once — has
+  // to keep landing somewhere.
+  async redirects() {
+    return [{ source: "/tv-app", destination: "/install", permanent: true }];
+  },
   async headers() {
     return [
       {
