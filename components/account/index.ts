@@ -2,3 +2,4 @@ export { AccountProvider, useAccount, type AccountProfile } from "./AccountProvi
 export { AccountMenu } from "./AccountMenu";
 export { TitleActions } from "./TitleActions";
 export { AccountLibrary } from "./AccountLibrary";
+export { RatingControl } from "./RatingControl";

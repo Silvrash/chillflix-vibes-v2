@@ -6,11 +6,15 @@ import { MediaGrid } from "@/components/media/MediaGrid";
 import {
   getFavoriteMoviesQuery,
   getFavoriteTvQuery,
+  getRatedMoviesQuery,
+  getRatedTvQuery,
   getWatchlistMoviesQuery,
   getWatchlistTvQuery,
 } from "@/lib/tmdb/account-queries";
 import { MediaType } from "@/lib/tmdb/queries";
 import { useAccount } from "./AccountProvider";
+
+type LibraryKind = "watchlist" | "favorites" | "ratings";
 
 /**
  * A signed-in collection, in the shape of a browse page.
@@ -21,12 +25,16 @@ import { useAccount } from "./AccountProvider";
  * derives entirely from URL filters, and a watchlist is not a `/discover` query,
  * so it cannot be expressed as one.
  */
-export function AccountLibrary({ kind }: { kind: "watchlist" | "favorites" }) {
+export function AccountLibrary({ kind }: { kind: LibraryKind }) {
   const { account, ready } = useAccount();
   const accountId = account?.accountId ?? 0;
 
-  const [movieQuery, tvQuery] =
-    kind === "watchlist" ? [getWatchlistMoviesQuery, getWatchlistTvQuery] : [getFavoriteMoviesQuery, getFavoriteTvQuery];
+  const sources: Record<LibraryKind, [typeof getWatchlistMoviesQuery, typeof getWatchlistTvQuery]> = {
+    watchlist: [getWatchlistMoviesQuery, getWatchlistTvQuery],
+    favorites: [getFavoriteMoviesQuery, getFavoriteTvQuery],
+    ratings: [getRatedMoviesQuery, getRatedTvQuery],
+  };
+  const [movieQuery, tvQuery] = sources[kind];
 
   const movies = useQuery({
     ...movieQuery({ variables: { account_id: accountId, sort_by: "created_at.desc" } }),
@@ -45,7 +53,7 @@ export function AccountLibrary({ kind }: { kind: "watchlist" | "favorites" }) {
     return [...films, ...series];
   }, [movies.data, shows.data]);
 
-  const title = kind === "watchlist" ? "Your watchlist" : "Your favourites";
+  const { title, blurb, empty } = COPY[kind];
   const loading = movies.isPending || shows.isPending;
 
   return (
@@ -58,18 +66,14 @@ export function AccountLibrary({ kind }: { kind: "watchlist" | "favorites" }) {
           </span>
         )}
       </div>
-      <p className="mt-2 text-muted">
-        {kind === "watchlist"
-          ? "Titles you have saved on TMDB. They follow your account, not this device."
-          : "Titles you have marked as favourites on TMDB."}
-      </p>
+      <p className="mt-2 text-muted">{blurb}</p>
 
       {/* Three states, and they say different things. Not signed in is not the
           same as an empty list, and neither is the same as still loading. */}
       {!ready ? null : !account ? (
         <SignedOut />
       ) : loading ? null : items.length === 0 ? (
-        <Empty kind={kind} />
+        <Empty message={empty} />
       ) : (
         <MediaGrid className="mt-8" items={items} />
       )}
@@ -91,12 +95,29 @@ function SignedOut() {
   );
 }
 
-function Empty({ kind }: { kind: "watchlist" | "favorites" }) {
+function Empty({ message }: { message: string }) {
   return (
     <div className="mt-10 rounded-2xl border border-white/10 bg-surface/60 p-8">
-      <p className="text-muted">
-        Nothing here yet. {kind === "watchlist" ? "Add a title from its page and it will show up here." : "Mark a title as a favourite and it will show up here."}
-      </p>
+      <p className="text-muted">Nothing here yet. {message}</p>
     </div>
   );
 }
+
+/** One row per collection, so a fourth is a row rather than three more branches. */
+const COPY: Record<LibraryKind, { title: string; blurb: string; empty: string }> = {
+  watchlist: {
+    title: "Your watchlist",
+    blurb: "Titles you have saved on TMDB. They follow your account, not this device.",
+    empty: "Add a title from its page and it will show up here.",
+  },
+  favorites: {
+    title: "Your favourites",
+    blurb: "Titles you have marked as favourites on TMDB.",
+    empty: "Mark a title as a favourite and it will show up here.",
+  },
+  ratings: {
+    title: "Your ratings",
+    blurb: "Titles you have scored on TMDB. These are what its recommendations for you are built from.",
+    empty: "Rate a title out of ten from its page and it will show up here.",
+  },
+};

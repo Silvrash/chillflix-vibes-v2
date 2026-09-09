@@ -1,4 +1,4 @@
-import { getQuery, postMutation } from "./hooks";
+import { deleteMutation, getQuery, postMutation } from "./hooks";
 import type { MediaType, Movie, TVShow } from "./queries";
 
 /**
@@ -91,6 +91,40 @@ export const setFavoriteMutation = postMutation<
   { account_id: number; media_type: MediaType; media_id: number; favorite: boolean }
 >(SetFavoriteKey, ACCOUNT_PROXY);
 
+export const GetRatedMoviesQueryKey = "/account/[account_id]/rated/movies";
+export const getRatedMoviesQuery = getQuery<PagedResults<Movie>, { account_id: number; sort_by?: string; page?: number }>(
+  GetRatedMoviesQueryKey,
+  ACCOUNT_PROXY,
+);
+
+export const GetRatedTvQueryKey = "/account/[account_id]/rated/tv";
+export const getRatedTvQuery = getQuery<PagedResults<TVShow>, { account_id: number; sort_by?: string; page?: number }>(
+  GetRatedTvQueryKey,
+  ACCOUNT_PROXY,
+);
+
+/**
+ * Rating is the one account write with two verbs: POST sets a score, DELETE
+ * clears it. TMDB has no "unrated" value to post — 0 is rejected — so removing
+ * a rating is genuinely a different request rather than a different body.
+ *
+ * No `account_id` here, unlike the watchlist and favourite writes. It is not in
+ * the path — TMDB takes the rating against the title and reads the account from
+ * the session — and a mutation has no query key to scope, so passing it would
+ * only add a field to the request body that TMDB never asked for. The two path
+ * params are consumed by the path; whatever is left is the body.
+ */
+export const SetRatingKey = "/[media_type]/[media_id]/rating";
+export const setRatingMutation = postMutation<StatusResponse, { media_type: MediaType; media_id: number; value: number }>(
+  SetRatingKey,
+  ACCOUNT_PROXY,
+);
+
+export const clearRatingMutation = deleteMutation<StatusResponse, { media_type: MediaType; media_id: number }>(
+  SetRatingKey,
+  ACCOUNT_PROXY,
+);
+
 /** Every account query key, for clearing the lot when the viewer changes. */
 export const ACCOUNT_QUERY_KEYS = [
   GetAccountStatesQueryKey,
@@ -98,4 +132,6 @@ export const ACCOUNT_QUERY_KEYS = [
   GetWatchlistTvQueryKey,
   GetFavoriteMoviesQueryKey,
   GetFavoriteTvQueryKey,
+  GetRatedMoviesQueryKey,
+  GetRatedTvQueryKey,
 ];

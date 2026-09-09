@@ -1,6 +1,6 @@
 "use client";
 
-import { TitleActions } from "@/components/account";
+import { RatingControl, TitleActions } from "@/components/account";
 import { Spinner } from "@/components/ui/Spinner";
 import { tmdbGetFn } from "@/lib/tmdb/client";
 import { getTMDBImageUrl } from "@/lib/tmdb/images";
@@ -312,6 +312,10 @@ function DetailHero({
                 who never signs in. It already wraps, so two more buttons need no layout change. */}
             <TitleActions type={type} id={id} />
           </div>
+
+          {/* Its own line rather than in the row above: ten targets would swamp four buttons,
+              and a D-pad walking left-right along stars wants a row of its own to walk. */}
+          <RatingControl type={type} id={id} />
         </div>
       </div>
     </section>
