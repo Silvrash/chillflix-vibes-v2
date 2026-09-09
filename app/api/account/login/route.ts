@@ -35,9 +35,10 @@ export async function GET(request: NextRequest) {
   }
 
   const response = NextResponse.redirect(approvalUrl(requestToken));
-  // Remembered rather than trusted from the URL later: the callback compares
-  // what comes back against this, so a token someone else obtained cannot be
-  // walked into this browser's session.
+  // The callback has no other record of which token this browser was issued —
+  // TMDB redirects back bare, with no query string — so this cookie is what the
+  // exchange is made from. Which also means a token someone else approved cannot
+  // be walked into this browser's session by handing over a crafted link.
   setPendingCookie(response, {
     requestToken,
     returnTo: safeReturnTo(request.nextUrl.searchParams.get("returnTo") ?? undefined),
