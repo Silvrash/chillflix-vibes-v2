@@ -2,4 +2,9 @@ export { AccountProvider, useAccount, type AccountProfile } from "./AccountProvi
 export { AccountMenu } from "./AccountMenu";
 export { TitleActions } from "./TitleActions";
 export { AccountLibrary } from "./AccountLibrary";
+export { AccountRecommendations } from "./AccountRecommendations";
+export { AccountLists } from "./AccountLists";
+export { AccountListDetail } from "./AccountListDetail";
+export { AccountPageShell, EmptyNotice, SignedOutNotice } from "./AccountPageShell";
+export { AddToListMenu } from "./AddToListMenu";
 export { RatingControl } from "./RatingControl";

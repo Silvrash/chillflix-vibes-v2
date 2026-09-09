@@ -6,7 +6,8 @@ import { useAccount } from "@/components/account";
 import { MediaRail } from "@/components/media/MediaRail";
 import { getWatchlistMoviesQuery, getWatchlistTvQuery } from "@/lib/tmdb/account-queries";
 import { MediaType } from "@/lib/tmdb/queries";
-import { useClaimItems } from "./shown-titles";
+import { interleave, withPoster } from "./rail-items";
+import { useClaimMixedItems } from "./shown-titles";
 
 /**
  * The viewer's own watchlist, and the first row on this page that is about them
@@ -41,15 +42,18 @@ export function WatchlistRail({ order }: { order: number }) {
     retry: false,
   });
 
-  // Interleaved rather than films-then-series: the two requests are separate only
-  // because TMDB splits them, and the viewer thinks of one list.
+  // Genuinely taken in turn, not films-then-series: the two requests are separate only because TMDB
+  // splits them, and the viewer thinks of one list. Concatenating would also hide the series half
+  // outright — a full page of films fills the twenty-item cap on its own (./rail-items.ts).
   const items = useMemo(() => {
-    const films = (movies.data?.results ?? []).map((item) => ({ ...item, media_type: MediaType.movie }));
-    const series = (shows.data?.results ?? []).map((item) => ({ ...item, media_type: MediaType.tv }));
-    return [...films, ...series].filter((item) => item.poster_path).slice(0, 20);
+    const films = withPoster(movies.data?.results ?? []).map((item) => ({ ...item, media_type: MediaType.movie }));
+    const series = withPoster(shows.data?.results ?? []).map((item) => ({ ...item, media_type: MediaType.tv }));
+    return interleave(films, series).slice(0, 20);
   }, [movies.data, shows.data]);
 
-  useClaimItems(order, MediaType.movie, items);
+  // Each item under the type it was drawn from: naming one type for a mixed row would file a series
+  // under `movie:<id>` and suppress the unrelated film sharing that id (./shown-titles.tsx).
+  useClaimMixedItems(order, items);
 
   if (!account) return null;
   // No skeleton: this row's absence is normal (an empty watchlist), so a

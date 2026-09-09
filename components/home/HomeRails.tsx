@@ -3,6 +3,7 @@ import { MediaType } from "@/lib/tmdb/queries";
 import { DiscoverRail } from "./DiscoverRail";
 import { Hero } from "./Hero";
 import { NetworkRail } from "./NetworkRail";
+import { RecommendedRail } from "./RecommendedRail";
 import { ShownTitlesProvider } from "./shown-titles";
 import { TrendingRail } from "./TrendingRail";
 import { WatchlistRail } from "./WatchlistRail";
@@ -21,7 +22,7 @@ import { HOME_DISCOVER_RAILS, HOME_NETWORK_TILES } from "./rails";
  * (./rail-items.ts). The rows this registry really carries are the /discover ones below the fold,
  * whose server HTML is a skeleton either way.
  */
-const ORDER = { watchlist: 0, topMovies: 1, topShows: 2, hero: 3, firstDiscover: 4 };
+const ORDER = { watchlist: 0, topMovies: 1, topShows: 2, hero: 3, recommended: 4, firstDiscover: 5 };
 
 /**
  * The home page: a hero to look at, then curated rows to browse. Filtering lives on /movies,
@@ -67,6 +68,11 @@ export function HomeRails() {
           {/* Ahead of the Top 10s deliberately: a list the viewer built by hand outranks a
               ranking, and it renders nothing at all when signed out or empty. */}
           <WatchlistRail order={ORDER.watchlist} />
+
+          {/* Drawn beside the watchlist because both rows are about the viewer, but ranked below
+              every row above it rather than beside them: this is the one personal row with titles to
+              spare, so where two rows want the same film it is the one that can give it up. */}
+          <RecommendedRail order={ORDER.recommended} />
 
           <TrendingRail order={ORDER.topMovies} title="Top 10 Movies" mediaType={MediaType.movie} href="/movies" />
           <TrendingRail order={ORDER.topShows} title="Top 10 TV Shows" mediaType={MediaType.tv} href="/tv" />

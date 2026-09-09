@@ -30,3 +30,26 @@ export const TOP_N = 10;
 export function topRanked<T extends { poster_path?: string }>(items: T[]): T[] {
   return withPoster(items).slice(0, TOP_N);
 }
+
+/**
+ * Two of TMDB's lists as one row, taken in turn rather than one after the other.
+ *
+ * Every account collection arrives split into films and series — TMDB has no combined endpoint —
+ * while the viewer thinks of it as a single list. Concatenating the halves is not merely untidy: a
+ * rail caps what it draws, so a full page of films fills the cap on its own and the series behind
+ * them can never appear at all. A watchlist of thirty films and four shows would render as a row
+ * with no shows in it.
+ *
+ * Taking one from each in turn keeps both halves visible and leaves the order TMDB returned intact
+ * within each — which is the ordering that carries the meaning, whether it is recency or relevance.
+ */
+export function interleave<A, B>(first: A[], second: B[]): (A | B)[] {
+  // Two type parameters, not one: a film and a series are different shapes, and inferring a single
+  // T from the first argument would make the second have to satisfy it.
+  const merged: (A | B)[] = [];
+  for (let index = 0; index < Math.max(first.length, second.length); index += 1) {
+    if (index < first.length) merged.push(first[index]);
+    if (index < second.length) merged.push(second[index]);
+  }
+  return merged;
+}

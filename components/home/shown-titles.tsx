@@ -65,8 +65,30 @@ export function ShownTitlesProvider({ children }: { children: ReactNode }) {
  * browser.
  */
 export function useClaimItems<T extends { id: number }>(order: number, mediaType: MediaType, items: T[]): void {
-  const claim = useContext(ShownTitlesContext)?.claim;
   const keys = useMemo(() => items.map((item) => titleKey(mediaType, item.id)), [items, mediaType]);
+  useClaimKeys(order, keys);
+}
+
+/**
+ * The same, for a row that draws films and series together.
+ *
+ * The account rows are the ones that do — TMDB splits every collection of the viewer's in two and
+ * they think of it as one list — so each half is stamped with the type it was drawn from and the
+ * two are merged. Naming one media type for a merged row would file a series under `movie:<id>`:
+ * a claim no row will ever match, and one that quietly suppresses the unrelated film sharing that
+ * id in every row below.
+ */
+export function useClaimMixedItems<T extends MixedItem>(order: number, items: T[]): void {
+  const keys = useMemo(() => items.map((item) => titleKey(item.media_type, item.id)), [items]);
+  useClaimKeys(order, keys);
+}
+
+/** An item that names its own media type, because the row holding it draws both. */
+type MixedItem = { id: number; media_type: MediaType };
+
+/** The one effect behind both: a row publishes its keys, however it built them. */
+function useClaimKeys(order: number, keys: string[]): void {
+  const claim = useContext(ShownTitlesContext)?.claim;
 
   useEffect(() => {
     claim?.(order, keys);
@@ -81,15 +103,7 @@ export function useClaimItems<T extends { id: number }>(order: number, mediaType
  * the titles it actually shows, never the ones it fetched and cut.
  */
 export function useUnshownItems<T extends { id: number }>(order: number, mediaType: MediaType, items: T[], limit: number): T[] {
-  const claims = useContext(ShownTitlesContext)?.claims;
-
-  const spokenFor = useMemo(() => {
-    const keys = new Set<string>();
-    for (const [rank, claimed] of Object.entries(claims ?? {})) {
-      if (Number(rank) < order) for (const key of claimed) keys.add(key);
-    }
-    return keys;
-  }, [claims, order]);
+  const spokenFor = useSpokenFor(order);
 
   const visible = useMemo(
     () => items.filter((item) => !spokenFor.has(titleKey(mediaType, item.id))).slice(0, limit),
@@ -99,6 +113,33 @@ export function useUnshownItems<T extends { id: number }>(order: number, mediaTy
   useClaimItems(order, mediaType, visible);
 
   return visible;
+}
+
+/** `useUnshownItems` for a row drawing films and series together — see `useClaimMixedItems`. */
+export function useUnshownMixedItems<T extends MixedItem>(order: number, items: T[], limit: number): T[] {
+  const spokenFor = useSpokenFor(order);
+
+  const visible = useMemo(
+    () => items.filter((item) => !spokenFor.has(titleKey(item.media_type, item.id))).slice(0, limit),
+    [items, spokenFor, limit],
+  );
+
+  useClaimMixedItems(order, visible);
+
+  return visible;
+}
+
+/** Every key already claimed by a row that outranks this one. */
+function useSpokenFor(order: number): Set<string> {
+  const claims = useContext(ShownTitlesContext)?.claims;
+
+  return useMemo(() => {
+    const keys = new Set<string>();
+    for (const [rank, claimed] of Object.entries(claims ?? {})) {
+      if (Number(rank) < order) for (const key of claimed) keys.add(key);
+    }
+    return keys;
+  }, [claims, order]);
 }
 
 function sameKeys(current: string[] | undefined, next: string[]): boolean {
