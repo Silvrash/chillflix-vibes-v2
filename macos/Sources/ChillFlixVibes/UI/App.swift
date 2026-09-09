@@ -59,6 +59,10 @@ enum Palette {
 enum Route: Hashable {
     case detail(MediaType, Int)
     case play(PlaybackTarget)
+    /// A network tile opens the series catalogue already filtered to it. Pushed
+    /// rather than selected in the pill, because it is a narrowing of TV Shows
+    /// rather than a destination of its own.
+    case network(NetworkFilter)
 }
 
 /// A top-level destination — a page of the site, in the nav pill's own order.
@@ -107,6 +111,7 @@ struct ContentView: View {
                 switch route {
                 case let .detail(type, id): DetailView(type: type, id: id)
                 case let .play(target): PlayerWindow(target: target)
+                case let .network(network): BrowseView(section: .tv, initialNetwork: network)
                 }
             }
         }
@@ -218,13 +223,21 @@ private struct NavPill: View {
                 .fill(Palette.brand)
                 .frame(width: 32, height: 32)
                 .overlay(
-                    Image(systemName: "film.fill")
+                    Image(systemName: Self.clapperboard)
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(.white)
                 )
         }
         .buttonStyle(.plain)
         .help("ChillFlixVibes home")
+    }
+
+    /// The web app's mark is a clapperboard (lucide's `Clapperboard`), and the
+    /// two are meant to read as one product. SF Symbols only grew one in 5,
+    /// which ships with macOS 14, so 13 falls back to the filmstrip.
+    private static var clapperboard: String {
+        if #available(macOS 14.0, *) { return "movieclapper.fill" }
+        return "film.fill"
     }
 }
 

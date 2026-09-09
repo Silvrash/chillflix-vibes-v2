@@ -18,6 +18,7 @@ struct HomeView: View {
                             fallback: .tv
                         )
                     }
+                    NetworkRow()
                     MediaShelf(title: "Trending Today", items: trending, fallback: .movie)
                     ForEach(homeShelves) { PresetShelf(preset: $0) }
 
@@ -75,6 +76,74 @@ struct HomeView: View {
         }
         .padding(.horizontal, Metric.gutter)
         .padding(.top, 4)
+    }
+}
+
+/// The row of network tiles, mirroring the web home page's.
+///
+/// It shows no titles, so it needs no fetch — the twelve brands are static, and
+/// each tile pushes a browse screen already filtered to that network.
+private struct NetworkRow: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            SectionHeading(title: "TV Shows by Network")
+                .padding(.horizontal, Metric.gutter)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: Metric.railGap) {
+                    ForEach(networks, id: \.self) { network in
+                        NavigationLink(value: Route.network(network)) {
+                            NetworkTile(network: network)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.horizontal, Metric.gutter)
+                // Room for the focus ring, which the scroller would otherwise clip.
+                .padding(.vertical, 4)
+            }
+        }
+    }
+}
+
+/// One tile: the logo centred on a neutral plate.
+///
+/// Painted white rather than left as TMDB serves it, which is the same
+/// correction the web app makes: the files are transparent PNGs carrying one
+/// flat brand colour each, and half this set — HBO Max, Apple TV+, Peacock,
+/// AMC, FX, Adult Swim — is pure black, invisible on a plate this dark. No one
+/// plate colour carries the set either: light enough for the black wordmarks and
+/// the bright ones disappear instead.
+private struct NetworkTile: View {
+    let network: NetworkFilter
+
+    @State private var hovering = false
+
+    var body: some View {
+        AsyncImage(url: TmdbImage.url(network.logoPath, size: "w300")) { image in
+            image
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .colorMultiply(.black)
+                .colorInvert()
+        } placeholder: {
+            Text(network.name)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(.white)
+                .multilineTextAlignment(.center)
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 16)
+        .frame(width: 168, height: 94)
+        .background(Palette.surface, in: RoundedRectangle(cornerRadius: Metric.cardRadius, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: Metric.cardRadius, style: .continuous)
+                .stroke(hovering ? Palette.hairlineBright : Palette.hairline, lineWidth: 1)
+        )
+        .scaleEffect(hovering ? 1.03 : 1)
+        .onHover { hovering = $0 }
+        .animation(.easeOut(duration: 0.14), value: hovering)
+        .accessibilityLabel(network.name)
     }
 }
 
@@ -191,6 +260,9 @@ struct HeroBanner: View {
 /// the shape the web app's /movies, /tv and /anime pages hold.
 struct BrowseView: View {
     let section: BrowseSection
+    /// Set when a network tile opened this screen, so it arrives already
+    /// filtered rather than on the section's default category.
+    var initialNetwork: NetworkFilter?
 
     /// nil until the viewer picks something, so the screen opens on the
     /// section's first category without duplicating it in two places.
@@ -201,7 +273,12 @@ struct BrowseView: View {
     @State private var totalPages = 1
 
     private var selection: BrowseSelection {
-        chosen ?? BrowseSelection(preset: section.presets[0], genres: ownedGenres(section.presets[0]), network: nil)
+        chosen
+            ?? BrowseSelection(
+                preset: section.presets[0],
+                genres: ownedGenres(section.presets[0]),
+                network: initialNetwork
+            )
     }
 
     private let columns = [GridItem(.adaptive(minimum: Metric.posterWidth), spacing: Metric.railGap)]
@@ -218,6 +295,10 @@ struct BrowseView: View {
                 grid
             }
         }
+        // Same as the home page: the window asked for no titlebar, so the safe
+        // area it still reserves at the top is dead space above a heading that
+        // is already inset to clear the pill.
+        .ignoresSafeArea(edges: .top)
         .background(Palette.background)
         .navigationTitle(section.label)
         .task(id: selection) {
@@ -508,19 +589,22 @@ private let tvGenres: [Genre] = [
 struct NetworkFilter: Hashable {
     let name: String
     let ids: String
+    /// TMDB's own logo file. Mirrors `lib/networks.ts` on the web, so the two
+    /// rows of tiles are the same twelve brands drawn from the same artwork.
+    let logoPath: String
 }
 
-private let networks: [NetworkFilter] = [
-    NetworkFilter(name: "Netflix", ids: "213"),
-    NetworkFilter(name: "Prime Video", ids: "1024"),
-    NetworkFilter(name: "Disney+", ids: "2739"),
-    NetworkFilter(name: "HBO Max", ids: "49|3186"),
-    NetworkFilter(name: "Apple TV+", ids: "2552"),
-    NetworkFilter(name: "Hulu", ids: "453"),
-    NetworkFilter(name: "Paramount+", ids: "4330|1709"),
-    NetworkFilter(name: "Peacock", ids: "3353"),
-    NetworkFilter(name: "AMC", ids: "174"),
-    NetworkFilter(name: "FX", ids: "88"),
-    NetworkFilter(name: "BBC One", ids: "4"),
-    NetworkFilter(name: "Adult Swim", ids: "80"),
+let networks: [NetworkFilter] = [
+    NetworkFilter(name: "Netflix", ids: "213", logoPath: "/wwemzKWzjKYJFfCeiB57q3r4Bcm.png"),
+    NetworkFilter(name: "Prime Video", ids: "1024", logoPath: "/w7HfLNm9CWwRmAMU58udl2L7We7.png"),
+    NetworkFilter(name: "Disney+", ids: "2739", logoPath: "/1edZOYAfoyZyZ3rklNSiUpXX30Q.png"),
+    NetworkFilter(name: "HBO Max", ids: "49|3186", logoPath: "/nmU0UMDJB3dRRQSTUqawzF2Od1a.png"),
+    NetworkFilter(name: "Apple TV+", ids: "2552", logoPath: "/bngHRFi794mnMq34gfVcm9nDxN1.png"),
+    NetworkFilter(name: "Hulu", ids: "453", logoPath: "/pqUTCleNUiTLAVlelGxUgWn1ELh.png"),
+    NetworkFilter(name: "Paramount+", ids: "4330|1709", logoPath: "/fi83B1oztoS47xxcemFdPMhIzK.png"),
+    NetworkFilter(name: "Peacock", ids: "3353", logoPath: "/gIAcGTjKKr0KOHL5s4O36roJ8p7.png"),
+    NetworkFilter(name: "AMC", ids: "174", logoPath: "/pmvRmATOCaDykE6JrVoeYxlFHw3.png"),
+    NetworkFilter(name: "FX", ids: "88", logoPath: "/aexGjtcs42DgRtZh7zOxayiry4J.png"),
+    NetworkFilter(name: "BBC One", ids: "4", logoPath: "/uJjcCg3O4DMEjM0xtno9OWFciRP.png"),
+    NetworkFilter(name: "Adult Swim", ids: "80", logoPath: "/tHZPHOLc6iF27G34cAZGPsMtMSy.png"),
 ]
