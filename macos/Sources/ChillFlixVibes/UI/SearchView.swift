@@ -82,6 +82,7 @@ struct SearchView: View {
         }
         .padding(.horizontal, Metric.gutter)
         .padding(.top, Metric.navClearance)
+        .ignoresSafeArea(edges: .top)
         .padding(.bottom, 18)
         // Landing on Search means wanting to type; a Mac app should not ask for
         // a click first.

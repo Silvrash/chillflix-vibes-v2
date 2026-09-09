@@ -62,6 +62,7 @@ struct PlayerWindow: View {
         // The nav pill floats over this screen too, as it does over the web app's
         // watch page, so the transport row starts below it rather than under it.
         .padding(.top, Metric.navClearance)
+        .ignoresSafeArea(edges: .top)
         .frame(minWidth: 900, minHeight: 560)
         .background(Palette.background)
         .navigationTitle(title)

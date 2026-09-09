@@ -13,10 +13,17 @@ enum Metric {
     /// The air between one shelf and the next. Sections are told apart by the
     /// space around them rather than by rules or panels.
     static let sectionGap: CGFloat = 40
-    /// How far down a screen starts when it must clear the floating nav pill —
-    /// the pill's own height and top inset, plus a gap. Screens led by artwork
-    /// skip it on purpose: there the picture is meant to run underneath.
-    static let navClearance: CGFloat = 72
+    /// How far down a screen starts when it must clear the floating nav pill.
+    ///
+    /// Measured from the top of the *window*, which is why every screen ignores
+    /// the top safe area: the window asked for no titlebar, but SwiftUI still
+    /// reserves one, and a screen that keeps the inset is pushed down twice.
+    ///
+    /// The pill ends at 58 — 14 top inset, 6 padding, a 32 brand mark, 6 padding
+    /// — and the back chevron at 44, so 84 clears both with room to breathe.
+    /// Change the pill and this moves with it. Screens led by artwork skip it on
+    /// purpose: there the picture is meant to run underneath.
+    static let navClearance: CGFloat = 84
 }
 
 /// A translucent fill behind a hairline — the surface the web app floats over
