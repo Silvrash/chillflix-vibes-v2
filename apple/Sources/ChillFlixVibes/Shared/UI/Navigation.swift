@@ -8,6 +8,12 @@ enum Route: Hashable {
     /// rather than selected in the pill, because it is a narrowing of TV Shows
     /// rather than a destination of its own.
     case network(NetworkFilter)
+    /// The signed-in collections. Pushed like a title rather than picked in the
+    /// pill: they are the viewer's rooms, not the site's sections.
+    case library(LibraryKind)
+    case recommendations
+    case lists
+    case list(Int)
 }
 
 /// A top-level destination — a page of the site, in the nav pill's own order.

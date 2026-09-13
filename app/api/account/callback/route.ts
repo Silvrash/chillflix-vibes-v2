@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { exchangeForSession } from "@/lib/tmdb/account-api";
 import {
+  NATIVE_CALLBACK,
   PENDING_COOKIE,
   accountsConfigured,
   clearCookie,
   readPending,
   safeReturnTo,
+  sealSession,
   setSessionCookie,
 } from "@/lib/tmdb/account-session";
 
@@ -43,13 +45,28 @@ export async function GET(request: NextRequest) {
   const planted = Boolean(echoed) && echoed !== pending?.requestToken;
 
   if (denied || planted || !pending) {
-    const response = NextResponse.redirect(home);
+    const response = NextResponse.redirect(pending?.native ? `${NATIVE_CALLBACK}?denied=1` : home);
     clearCookie(response, PENDING_COOKIE);
     response.headers.set("cache-control", "private, no-store");
     return response;
   }
 
   const session = await exchangeForSession(pending.requestToken);
+
+  // A native app cannot read a cookie set in the browser it borrowed, so it is
+  // handed the same sealed session as a URL, on a scheme only its own
+  // authentication session is listening for. Nothing is set in that browser.
+  if (pending.native) {
+    const sealed = session && sealSession(session);
+    const response = NextResponse.redirect(
+      sealed ? `${NATIVE_CALLBACK}?session=${encodeURIComponent(sealed)}` : `${NATIVE_CALLBACK}?error=exchange`,
+    );
+    clearCookie(response, PENDING_COOKIE);
+    response.headers.set("cache-control", "private, no-store");
+    if (!sealed) console.error("[account] TMDB rejected the token exchange for a native sign-in.");
+    return response;
+  }
+
   const response = NextResponse.redirect(home);
   clearCookie(response, PENDING_COOKIE);
 

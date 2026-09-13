@@ -111,6 +111,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 struct ContentView: View {
     @State private var destination: Destination = .home
     @State private var path = NavigationPath()
+    @StateObject private var account = AccountStore.shared
 
     var body: some View {
         NavigationStack(path: $path) {
@@ -127,9 +128,22 @@ struct ContentView: View {
                     case let .detail(type, id): DetailView(type: type, id: id)
                     case let .play(target): PlayerWindow(target: target)
                     case let .network(network): BrowseView(section: .tv, initialNetwork: network)
+                    case let .library(kind): LibraryView(kind: kind)
+                    case .recommendations: RecommendationsView()
+                    case .lists: ListsView()
+                    case let .list(id): ListDetailView(id: id)
                     }
                 }
             }
+        }
+        // Whoever signed in last time is picked up before anything asks: the
+        // store is `ready` only once the keychain has been checked, so no
+        // account control renders in the wrong state on the way in.
+        .task { await account.restore() }
+        .alert("Something went wrong", isPresented: Binding(get: { account.failure != nil }, set: { if !$0 { account.failure = nil } })) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(account.failure ?? "")
         }
         .background(Palette.background)
         // Both of these float *over* the screen rather than taking a strip of
@@ -139,6 +153,7 @@ struct ContentView: View {
             NavPill(
                 destination: destination,
                 select: go,
+                open: { path.append($0) },
                 back: path.isEmpty ? nil : { path.removeLast() }
             )
             // The pill has to measure from the same top edge its screens do.
@@ -149,6 +164,11 @@ struct ContentView: View {
             // different on a pushed screen, which is where it showed.
             .ignoresSafeArea(edges: .top)
         }
+        // Outermost on purpose. An environment object reaches children, and
+        // the nav pill is an overlay — a sibling of the stack, not a child of
+        // it — so injected any nearer in, the pill's account item would find
+        // nothing and trap.
+        .environmentObject(account)
     }
 
     /// Picking a page is arriving somewhere new, not a step deeper: whatever
@@ -202,6 +222,9 @@ private struct BackButton: View {
 private struct NavPill: View {
     let destination: Destination
     let select: (Destination) -> Void
+    /// Pushes a screen onto whatever page is showing — the account menu's
+    /// destinations are rooms of the viewer's, not pages of the site.
+    let open: (Route) -> Void
     /// Non-nil while there is somewhere to go back to.
     var back: (() -> Void)?
 
@@ -240,6 +263,13 @@ private struct NavPill: View {
             // to spell "Search movies and shows", so the shortcut is the part of
             // it that stays reachable without reading the label.
             .keyboardShortcut("k", modifiers: .command)
+
+            Rectangle()
+                .fill(Palette.hairline)
+                .frame(width: 1, height: 20)
+                .padding(.horizontal, 2)
+
+            AccountPillItem(open: open)
         }
         .padding(6)
         .glass(radius: Metric.panelRadius, fill: Color.black.opacity(0.45))
@@ -310,5 +340,113 @@ private struct NavPillItem: View {
         .buttonStyle(.plain)
         .onHover { hovering = $0 }
         .animation(.easeOut(duration: 0.12), value: hovering)
+    }
+}
+
+/// The pill's last item: "Sign in" when signed out, the viewer's name and
+/// avatar with a menu of their collections when in. The same control the
+/// site's navbar ends with, in the same place.
+///
+/// Nothing at all until the store is ready — rendering "Sign in" and then
+/// swapping it for a name a moment later would visibly resize the pill.
+private struct AccountPillItem: View {
+    let open: (Route) -> Void
+
+    @EnvironmentObject private var account: AccountStore
+    @State private var hovering = false
+
+    var body: some View {
+        if !account.ready {
+            EmptyView()
+        } else if let profile = account.profile {
+            Menu {
+                Button { open(.library(.watchlist)) } label: { Label("Watchlist", systemImage: "bookmark") }
+                Button { open(.library(.favorites)) } label: { Label("Favourites", systemImage: "heart") }
+                Button { open(.library(.ratings)) } label: { Label("Ratings", systemImage: "star") }
+                Button { open(.lists) } label: { Label("Lists", systemImage: "text.badge.plus") }
+                Button { open(.recommendations) } label: { Label("For you", systemImage: "sparkles") }
+                Divider()
+                Button {
+                    Task { await account.signOut() }
+                } label: {
+                    Label("Sign out", systemImage: "rectangle.portrait.and.arrow.right")
+                }
+            } label: {
+                HStack(spacing: 7) {
+                    Avatar(path: profile.avatarPath, initial: profile.username.first.map(String.init) ?? "?")
+                    Text(profile.username)
+                        .font(.system(size: 13, weight: .medium))
+                        .lineLimit(1)
+                        .frame(maxWidth: 96, alignment: .leading)
+                        .fixedSize(horizontal: true, vertical: false)
+                }
+                .foregroundStyle(hovering ? Color.white : Palette.muted)
+                .padding(.leading, 8)
+                .padding(.trailing, 13)
+                .padding(.vertical, 7)
+                .background(hovering ? Color.white.opacity(0.05) : .clear, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+            }
+            .menuStyle(.button)
+            .buttonStyle(.plain)
+            .menuIndicator(.hidden)
+            .fixedSize()
+            .onHover { hovering = $0 }
+            .animation(.easeOut(duration: 0.12), value: hovering)
+            .help("Account: \(profile.username)")
+        } else {
+            Button {
+                Task { await account.signIn() }
+            } label: {
+                HStack(spacing: 7) {
+                    Image(systemName: "person.crop.circle")
+                        .font(.system(size: 12, weight: .medium))
+                    Text("Sign in")
+                        .font(.system(size: 13, weight: .medium))
+                }
+                .foregroundStyle(hovering ? Color.white : Palette.muted)
+                .padding(.horizontal, 13)
+                .padding(.vertical, 9)
+                .background(hovering ? Color.white.opacity(0.05) : .clear, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            }
+            .buttonStyle(.plain)
+            .disabled(account.busy)
+            .onHover { hovering = $0 }
+            .animation(.easeOut(duration: 0.12), value: hovering)
+            .help("Sign in with your TMDB account")
+        }
+    }
+}
+
+/// The viewer's TMDB avatar, or their initial in a small tile when they have
+/// not set one.
+private struct Avatar: View {
+    let path: String?
+    let initial: String
+
+    var body: some View {
+        Group {
+            if let url = TmdbImage.url(path, size: "w45") {
+                AsyncImage(url: url) { image in
+                    image.resizable().scaledToFill()
+                } placeholder: {
+                    fallback
+                }
+            } else {
+                fallback
+            }
+        }
+        .frame(width: 22, height: 22)
+        .clipShape(Circle())
+    }
+
+    private var fallback: some View {
+        Circle()
+            .fill(Color.white.opacity(0.10))
+            .overlay(
+                Text(initial.uppercased())
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(.white)
+            )
     }
 }

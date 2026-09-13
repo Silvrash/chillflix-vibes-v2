@@ -142,10 +142,16 @@ struct DetailView: View {
                     .padding(.top, 14)
             }
 
-            NavigationLink(value: target(season: resumePoint.season, episode: resumePoint.episode)) {
-                ActionLabel(symbol: "play.fill", title: resumeLabel)
+            HStack(spacing: 10) {
+                NavigationLink(value: target(season: resumePoint.season, episode: resumePoint.episode)) {
+                    ActionLabel(symbol: "play.fill", title: resumeLabel)
+                }
+                .buttonStyle(SolidButtonStyle())
+
+                // Watchlist, favourite, rating and lists — and nothing, for a
+                // viewer who is not signed in, so this row is the row it was.
+                TitleActions(type: type, id: id)
             }
-            .buttonStyle(SolidButtonStyle())
             .padding(.top, 22)
         }
         .frame(maxWidth: .infinity, alignment: .leading)

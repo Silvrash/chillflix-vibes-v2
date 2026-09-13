@@ -52,9 +52,21 @@ const SESSION_MAX_AGE = 60 * 60 * 24 * 30;
 /** What was handed out at login, to be checked against what comes back. */
 export interface PendingApproval {
   requestToken: string;
-  /** Where to send the viewer afterwards. Same-origin relative path only. */
   returnTo: string;
+  /**
+   * Started by the Mac or iOS app rather than a browser tab. The callback then
+   * answers with a redirect to the app's own URL scheme carrying the sealed
+   * session, instead of setting a cookie a native app could never read.
+   */
+  native?: boolean;
 }
+
+/**
+ * Where a native sign-in lands: a scheme only the apps' authentication
+ * sessions listen for. Neither app registers it system-wide, so a link of this
+ * shape opened anywhere else goes nowhere.
+ */
+export const NATIVE_CALLBACK = "chillflixvibes://signin";
 
 function key(): Buffer | undefined {
   const secret = process.env.TMDB_SESSION_SECRET;
@@ -158,6 +170,16 @@ export function clearCookie(response: NextResponse, name: string): void {
  * and `//host` is rejected because a protocol-relative URL is an open redirect
  * wearing the shape of a path.
  */
+/**
+ * The session as the cookie would carry it, for handing to a native app. It is
+ * the same sealed blob the browser gets — opaque, AES-GCM, keyed by the server
+ * secret — so the app holds nothing the cookie does not, and the `/api/account`
+ * routes read it back through the same `readSession`.
+ */
+export function sealSession(session: AccountSession): string | undefined {
+  return seal(session);
+}
+
 export function safeReturnTo(value: string | undefined): string {
   if (!value || !value.startsWith("/") || value.startsWith("//")) return "/";
   return value;

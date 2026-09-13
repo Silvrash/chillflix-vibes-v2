@@ -19,6 +19,11 @@ struct HomeView: View {
                         )
                     }
                     NetworkRow()
+                    // Ahead of the trending row, as on the site: a list the
+                    // viewer built by hand outranks a ranking, and both render
+                    // nothing at all when signed out or empty.
+                    WatchlistShelf()
+                    RecommendedShelf()
                     MediaShelf(title: "Trending Today", items: trending, fallback: .movie)
                     ForEach(homeShelves) { PresetShelf(preset: $0) }
 

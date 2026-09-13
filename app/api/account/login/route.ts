@@ -42,6 +42,9 @@ export async function GET(request: NextRequest) {
   setPendingCookie(response, {
     requestToken,
     returnTo: safeReturnTo(request.nextUrl.searchParams.get("returnTo") ?? undefined),
+    // The apps start the same round trip through an authentication session and
+    // need the result back as a URL rather than a cookie.
+    native: request.nextUrl.searchParams.get("native") === "1",
   });
   response.headers.set("cache-control", "private, no-store");
   return response;

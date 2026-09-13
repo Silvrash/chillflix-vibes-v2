@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDisplayName</key>
+	<string>ChillFlixVibes</string>
+	<key>CFBundleExecutable</key>
+	<string>ChillFlixVibes</string>
+	<key>CFBundleIconFile</key>
+	<string>AppIcon</string>
+	<key>CFBundleIdentifier</key>
+	<string>com.chillflixvibes.mac</string>
+	<key>CFBundleName</key>
+	<string>ChillFlixVibes</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>1.1</string>
+	<key>CFBundleVersion</key>
+	<string>2</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>13.0</string>
+	<key>NSHighResolutionCapable</key>
+	<true/>
+	<key>NSPrincipalClass</key>
+	<string>NSApplication</string>
+	<!-- Where a TMDB sign-in lands. The authentication session intercepts this
+	     itself, but macOS has been seen to drop the callback for a scheme the
+	     app never declared, so it is declared. Nothing handles it otherwise. -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.chillflixvibes.signin</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>chillflixvibes</string>
+			</array>
+		</dict>
+	</array>
+</dict>
+</plist>

@@ -34,8 +34,10 @@ enum Metric {
     /// derived, because the pill's width is the sum of five labels in a system
     /// font and no arithmetic here would survive a font change any better.
     /// Generous by a few points on purpose, and like `navClearance` it moves
-    /// when the pill does.
-    static let navPillWidth: CGFloat = 660
+    /// when the pill does. It last moved for the account item: with a back
+    /// chevron on the left and a signed-in name on the right the pill reaches
+    /// about 790, and this is that with room to spare.
+    static let navPillWidth: CGFloat = 810
 
     /// How far in the traffic lights reach. `.hiddenTitleBar` leaves them
     /// floating in the corner and the app cannot move them, so anything drawn
@@ -116,10 +118,15 @@ struct SolidButtonStyle: ButtonStyle {
 
 /// The secondary action beside it: the same size in glass.
 struct GlassButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View { Content(configuration: configuration) }
+    /// A toggle that is on — watchlisted, favourited — sits one step brighter,
+    /// the same way the site lifts its active action buttons.
+    var active = false
+
+    func makeBody(configuration: Configuration) -> some View { Content(configuration: configuration, active: active) }
 
     private struct Content: View {
         let configuration: ButtonStyleConfiguration
+        let active: Bool
         @State private var hovering = false
 
         var body: some View {
@@ -130,8 +137,10 @@ struct GlassButtonStyle: ButtonStyle {
                 .padding(.vertical, 11)
                 .glass(
                     radius: Metric.cardRadius,
-                    fill: configuration.isPressed ? Color.white.opacity(0.22) : hovering ? Palette.glassHover : Palette.glass,
-                    border: hovering ? Palette.hairlineBright : Palette.hairline
+                    fill: configuration.isPressed ? Color.white.opacity(0.22)
+                        : active ? Color.white.opacity(hovering ? 0.25 : 0.20)
+                        : hovering ? Palette.glassHover : Palette.glass,
+                    border: active || hovering ? Palette.hairlineBright : Palette.hairline
                 )
                 .onHover { hovering = $0 }
                 .animation(.easeOut(duration: 0.12), value: hovering)
@@ -343,12 +352,28 @@ struct MediaShelf: View {
     let title: String
     let items: [MediaItem]
     let fallback: MediaType
+    /// Where the whole collection lives, for a shelf that shows only its head.
+    var more: Route?
 
     var body: some View {
         if !items.isEmpty {
             VStack(alignment: .leading, spacing: 14) {
-                SectionHeading(title: title)
-                    .padding(.horizontal, Metric.gutter)
+                HStack(alignment: .firstTextBaseline) {
+                    SectionHeading(title: title)
+                    if let more {
+                        Spacer()
+                        NavigationLink(value: more) {
+                            HStack(spacing: 4) {
+                                Text("See all")
+                                Image(systemName: "chevron.right").font(.system(size: 10, weight: .semibold))
+                            }
+                            .font(.system(size: 12.5, weight: .medium))
+                            .foregroundStyle(Palette.muted)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.horizontal, Metric.gutter)
 
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(alignment: .top, spacing: Metric.railGap) {
