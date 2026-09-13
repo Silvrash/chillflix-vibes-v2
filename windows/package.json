@@ -1,0 +1,14 @@
+{
+  "name": "chillflixvibes-windows",
+  "private": true,
+  "version": "1.0.0",
+  "description": "ChillFlixVibes for Windows: a Tauri shell around the site.",
+  "scripts": {
+    "dev": "tauri dev",
+    "build": "tauri build",
+    "icons": "tauri icon app-icon.png"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2"
+  }
+}

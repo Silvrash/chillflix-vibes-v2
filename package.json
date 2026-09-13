@@ -11,7 +11,9 @@
     "prepare": "npx husky",
     "mac": "apple/build-mac.sh --zip",
     "ios": "apple/build-ios.sh",
-    "ios:sim": "apple/build-ios.sh --simulator"
+    "ios:sim": "apple/build-ios.sh --simulator",
+    "windows:dev": "pnpm --dir windows dev",
+    "windows:build": "pnpm --dir windows build"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.59.16",

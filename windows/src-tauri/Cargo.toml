@@ -1,0 +1,27 @@
+[package]
+name = "chillflixvibes"
+version = "1.0.0"
+description = "ChillFlixVibes for Windows"
+edition = "2021"
+rust-version = "1.77"
+
+[lib]
+name = "app_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+# Pinned to the 2 line on purpose: crates.io already carries 3.0.0 alphas of
+# all three, and a bare `*` would take them.
+tauri = { version = "2", features = [] }
+tauri-plugin-window-state = "2"
+tauri-plugin-opener = "2"
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+panic = "abort"
+strip = true
