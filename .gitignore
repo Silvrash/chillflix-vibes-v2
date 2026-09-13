@@ -25,8 +25,8 @@ yarn-error.*
 next-env.d.ts
 
 # Swift package build products
-macos/.build/
-macos/ChillFlixVibes.app/
+apple/.build/
+apple/ChillFlixVibes.app/
 
 # Icon build intermediate; AppIcon.icns is the artifact
-macos/AppIcon.iconset/
+apple/AppIcon.iconset/

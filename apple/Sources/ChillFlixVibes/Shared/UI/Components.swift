@@ -498,6 +498,7 @@ struct PageHeading: View {
 /// The work is deferred a runloop turn: SwiftUI has not attached the
 /// representable to its enclosing NSScrollView yet while `updateNSView` runs, so
 /// reading `enclosingScrollView` any earlier finds nothing.
+#if os(macOS)
 private struct OverlayScrollers: NSViewRepresentable {
     func makeNSView(context: Context) -> NSView { NSView(frame: .zero) }
 
@@ -518,3 +519,11 @@ extension View {
         background(OverlayScrollers().frame(width: 0, height: 0))
     }
 }
+#else
+extension View {
+    /// iOS scroll indicators are already overlays that take no width and fade
+    /// out on their own, so there is nothing to do — this exists so the shared
+    /// screens can call it without a platform check at every scroll view.
+    func overlayScrollers() -> some View { self }
+}
+#endif
