@@ -14,13 +14,12 @@ import { pageMetadata } from "@/lib/seo";
  */
 export const metadata: Metadata = pageMetadata({
   title: "Install",
-  description: "Download ChillFlixVibes for Android TV, Google TV and macOS, build it for iPhone and iPad, or install the web app on your phone.",
+  description: "Download ChillFlixVibes for Android TV, Google TV and macOS, or install the web app on your phone.",
   path: "/install",
 });
 
 const APK_FILE = "chillflixvibes-tv.apk";
 const MAC_FILE = "ChillFlixVibes-mac.zip";
-const REPO_URL = "https://github.com/Silvrash/chillflix-vibes-v2";
 
 /** Read at build time so the page can't advertise a size the file doesn't have. */
 function fileSize(name: string): string {
@@ -37,11 +36,11 @@ export default function InstallPage() {
     <div className="mx-auto max-w-5xl px-4 pb-16 pt-24 sm:px-6 sm:pt-28 lg:px-10">
       <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">Install ChillFlixVibes</h1>
       <p className="mt-3 max-w-2xl text-muted">
-        Native apps for the television, the Mac, and the iPhone and iPad, and the web app itself on any phone. Nothing here
-        comes from a store, so each one has a note about what its platform will ask you first.
+        Native apps for the television and the Mac, and the web app itself on a phone. Nothing here comes from a store, so each
+        one has a note about what its platform will ask you first.
       </p>
 
-      <div className="mt-10 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="mt-10 grid gap-4 lg:grid-cols-3">
         <PlatformCard
           icon={<Tv className="h-5 w-5" />}
           name="Android TV"
@@ -62,19 +61,7 @@ export default function InstallPage() {
         />
         <PlatformCard
           icon={<Smartphone className="h-5 w-5" />}
-          name="iPhone & iPad"
-          requirement="iOS 18 or later · built with Xcode"
-          /* iOS installs nothing from a website, and this app cannot go
-             through the App Store, so the honest button is the source: the
-             Xcode project signs and installs it onto the viewer's own devices
-             with their Apple ID. */
-          blurb="The same shelves, title pages and TMDB account as the Mac app, laid out for a phone and a tablet. It installs from the source with Xcode and a free Apple ID rather than from a download."
-          link={{ href: `${REPO_URL}/tree/main/apple`, label: "Build from source" }}
-          meta="Xcode · your own devices"
-        />
-        <PlatformCard
-          icon={<Smartphone className="h-5 w-5" />}
-          name="Any phone"
+          name="Android & iPhone"
           requirement="Any modern mobile browser"
           /* There is no phone build, and saying so beats a button that goes
              nowhere. The site is a PWA — app/manifest.ts gives it a name, an
@@ -97,7 +84,6 @@ function PlatformCard({
   blurb,
   href,
   action,
-  link,
   meta,
 }: {
   icon: React.ReactNode;
@@ -106,8 +92,6 @@ function PlatformCard({
   blurb: string;
   href?: string;
   action?: string;
-  /** Somewhere to go rather than something to save — a page, not a file. */
-  link?: { href: string; label: string };
   meta: string;
 }) {
   return (
@@ -126,15 +110,6 @@ function PlatformCard({
           className="mt-6 rounded-xl bg-white px-5 py-3 text-center text-sm font-semibold text-black transition hover:bg-white/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         >
           {action}
-        </a>
-      ) : link ? (
-        <a
-          href={link.href}
-          target="_blank"
-          rel="noreferrer"
-          className="mt-6 rounded-xl border border-white/15 bg-white/5 px-5 py-3 text-center text-sm font-semibold text-white transition hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-        >
-          {link.label}
         </a>
       ) : (
         <span className="mt-6 rounded-xl border border-white/10 px-5 py-3 text-center text-sm font-medium text-muted">
