@@ -35,7 +35,10 @@ targets:
     settings:
       base:
         INFOPLIST_FILE: iOS/Info.plist
-        PRODUCT_BUNDLE_IDENTIFIER: com.chillflixvibes.ios
+        # Team-specific by necessity: Apple lets one team own a bundle
+        # identifier, and `com.chillflixvibes.ios` went to a Personal Team
+        # first. Building under another team means picking a new one here.
+        PRODUCT_BUNDLE_IDENTIFIER: com.nyeova.chillflixvibes
         PRODUCT_NAME: ChillFlixVibes
         TARGETED_DEVICE_FAMILY: "1,2"
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon

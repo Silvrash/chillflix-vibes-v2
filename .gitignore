@@ -32,3 +32,5 @@ apple/ChillFlixVibes.xcodeproj/
 
 # Icon build intermediate; AppIcon.icns is the artifact
 apple/AppIcon.iconset/
+# Which Apple team signs the iOS build; per-checkout, see apple/build-ios.sh.
+apple/.team

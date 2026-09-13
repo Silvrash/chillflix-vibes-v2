@@ -62,9 +62,9 @@ The iOS shell reads a few launch arguments so any screen can be reached
 without a finger on the glass — for screenshots, mostly:
 
 ```bash
-xcrun simctl launch booted com.chillflixvibes.ios -cfv-tab browse
-xcrun simctl launch booted com.chillflixvibes.ios -cfv-route detail/tv/1399
-xcrun simctl launch booted com.chillflixvibes.ios -cfv-signin 1
+xcrun simctl launch booted com.nyeova.chillflixvibes -cfv-tab browse
+xcrun simctl launch booted com.nyeova.chillflixvibes -cfv-route detail/tv/1399
+xcrun simctl launch booted com.nyeova.chillflixvibes -cfv-signin 1
 ```
 
 `-cfv-tab` takes `browse`, `account` or `search`; `-cfv-route` takes
