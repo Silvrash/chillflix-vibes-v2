@@ -108,9 +108,14 @@ struct AccountPage: View {
             .padding(.bottom, 36)
             .overlayScrollers()
         }
-        .ignoresSafeArea(edges: .top)
+        .belowTheChrome()
         .background(Palette.background)
+        #if os(iOS)
+        .navigationTitle("")
+        .heroNavigationBar()
+        #else
         .navigationTitle(title)
+        #endif
     }
 }
 

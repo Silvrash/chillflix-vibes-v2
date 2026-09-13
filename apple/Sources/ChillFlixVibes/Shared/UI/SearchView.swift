@@ -38,6 +38,7 @@ struct SearchView: View {
         }
         .background(Palette.background)
         .navigationTitle("Search")
+        .rootScreen()
         .task(id: query) {
             let trimmed = query.trimmingCharacters(in: .whitespaces)
             guard trimmed.count >= 2 else { results = []; return }
@@ -82,7 +83,7 @@ struct SearchView: View {
         }
         .padding(.horizontal, Metric.gutter)
         .padding(.top, Metric.navClearance)
-        .ignoresSafeArea(edges: .top)
+        .belowTheChrome()
         .padding(.bottom, 18)
         // Landing on Search means wanting to type; a Mac app should not ask for
         // a click first.

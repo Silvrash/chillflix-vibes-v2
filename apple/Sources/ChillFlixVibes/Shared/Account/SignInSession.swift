@@ -33,23 +33,33 @@ final class SignInSession: NSObject, ASWebAuthenticationPresentationContextProvi
         let url = URL(string: TmdbClient.siteURL + "/api/account/login?native=1")!
 
         return try await withCheckedThrowingContinuation { continuation in
+            // Exactly once. A session that fails to start reports it twice —
+            // `start()` returns false *and* the completion handler is called
+            // with an error — and a continuation resumed twice is a trap.
+            var resumed = false
+            func finish(_ result: Result<String, Error>) {
+                guard !resumed else { return }
+                resumed = true
+                continuation.resume(with: result)
+            }
+
             let session = ASWebAuthenticationSession(url: url, callbackURLScheme: Self.scheme) { callback, error in
                 if let error {
                     let code = (error as? ASWebAuthenticationSessionError)?.code
-                    continuation.resume(throwing: code == .canceledLogin ? SignInError.cancelled : SignInError.failed)
+                    finish(.failure(code == .canceledLogin ? SignInError.cancelled : SignInError.failed))
                     return
                 }
                 guard let callback,
                       let items = URLComponents(url: callback, resolvingAgainstBaseURL: false)?.queryItems else {
-                    continuation.resume(throwing: SignInError.failed)
+                    finish(.failure(SignInError.failed))
                     return
                 }
                 if let sealed = items.first(where: { $0.name == "session" })?.value, !sealed.isEmpty {
-                    continuation.resume(returning: sealed)
+                    finish(.success(sealed))
                 } else if items.contains(where: { $0.name == "denied" }) {
-                    continuation.resume(throwing: SignInError.denied)
+                    finish(.failure(SignInError.denied))
                 } else {
-                    continuation.resume(throwing: SignInError.failed)
+                    finish(.failure(SignInError.failed))
                 }
             }
             // Shared with Safari on purpose: a viewer signed in to TMDB there
@@ -57,16 +67,22 @@ final class SignInSession: NSObject, ASWebAuthenticationPresentationContextProvi
             session.prefersEphemeralWebBrowserSession = false
             session.presentationContextProvider = self
             self.session = session
-            if !session.start() { continuation.resume(throwing: SignInError.failed) }
+            if !session.start() { finish(.failure(SignInError.failed)) }
         }
     }
 
-    nonisolated func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
+    /// The window the sheet is presented from. Without one the session
+    /// refuses to start, so this is thorough: the key window first, then any
+    /// window of a scene that is on screen, then any window at all.
+    func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
         #if os(macOS)
-        return NSApp.keyWindow ?? NSApp.windows.first ?? ASPresentationAnchor()
+        return NSApp.keyWindow ?? NSApp.mainWindow ?? NSApp.windows.first ?? ASPresentationAnchor()
         #else
-        let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
-        return scenes.flatMap(\.windows).first(where: \.isKeyWindow) ?? scenes.first?.windows.first ?? ASPresentationAnchor()
+        let scenes = UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .sorted { $0.activationState.rawValue < $1.activationState.rawValue }
+        let windows = scenes.flatMap(\.windows)
+        return windows.first(where: \.isKeyWindow) ?? windows.first ?? ASPresentationAnchor()
         #endif
     }
 }

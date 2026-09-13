@@ -56,9 +56,14 @@ struct ListsView: View {
             .padding(.bottom, 36)
             .overlayScrollers()
         }
-        .ignoresSafeArea(edges: .top)
+        .belowTheChrome()
         .background(Palette.background)
+        #if os(iOS)
+        .navigationTitle("")
+        .heroNavigationBar()
+        #else
         .navigationTitle("Your lists")
+        #endif
         .task(id: account.revision) { await load() }
         .alert("New list", isPresented: $naming) {
             TextField("Name", text: $newName)
@@ -213,9 +218,14 @@ struct ListDetailView: View {
             .padding(.bottom, 36)
             .overlayScrollers()
         }
-        .ignoresSafeArea(edges: .top)
+        .belowTheChrome()
         .background(Palette.background)
+        #if os(iOS)
+        .navigationTitle("")
+        .heroNavigationBar()
+        #else
         .navigationTitle(list?.name ?? "List")
+        #endif
         .task(id: account.revision) { await load() }
         .alert("Rename list", isPresented: $renaming) {
             TextField("Name", text: $draftName)

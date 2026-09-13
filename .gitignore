@@ -27,6 +27,8 @@ next-env.d.ts
 # Swift package build products
 apple/.build/
 apple/ChillFlixVibes.app/
+# Generated from apple/project.yml by xcodegen; see apple/README.md.
+apple/ChillFlixVibes.xcodeproj/
 
 # Icon build intermediate; AppIcon.icns is the artifact
 apple/AppIcon.iconset/

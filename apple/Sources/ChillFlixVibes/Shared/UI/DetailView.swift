@@ -9,6 +9,16 @@ struct DetailView: View {
     @State private var episodes: [Episode] = []
     @State private var season = 1
 
+    #if os(iOS)
+    @Environment(\.horizontalSizeClass) private var sizeClass
+    /// A phone: the poster-beside-copy hero has no width to be beside in, so
+    /// the artwork goes on top and the copy runs below it, the way every
+    /// streaming app on the platform lays a title page out.
+    private var compact: Bool { sizeClass == .compact }
+    #else
+    private let compact = false
+    #endif
+
     var body: some View {
         GeometryReader { proxy in
             ScrollView {
@@ -37,7 +47,18 @@ struct DetailView: View {
             .ignoresSafeArea(edges: .top)
         }
         .background(Palette.background)
+        #if os(iOS)
+        // The hero carries the title; a second copy in the bar over it would
+        // sit on the artwork. The bar keeps only its back button.
+        .navigationTitle("")
+        .heroNavigationBar()
+        // Outermost as well as on the scroll view: on iOS the geometry reader
+        // between them is what is inset by the status bar, and a scroll view
+        // can only ignore an inset its parent has room for.
+        .ignoresSafeArea(edges: .top)
+        #else
         .navigationTitle(details?.displayTitle ?? "")
+        #endif
         .task {
             details = try? await TmdbClient.shared.details(type, id: id)
             recommendations = (try? await TmdbClient.shared.recommendations(type, id: id)) ?? []
@@ -48,7 +69,51 @@ struct DetailView: View {
         }
     }
 
-    private func header(_ details: MediaDetails, height: CGFloat) -> some View {
+    @ViewBuilder private func header(_ details: MediaDetails, height: CGFloat) -> some View {
+        if compact {
+            compactHeader(details)
+        } else {
+            wideHeader(details, height: height)
+        }
+    }
+
+    /// Artwork across the top, copy beneath it, the two joined by a scrim so
+    /// the title sits on the tail of the picture rather than under a hard edge.
+    private func compactHeader(_ details: MediaDetails) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            AsyncImage(url: TmdbImage.url(details.backdropPath, size: "w1280")) { image in
+                image.resizable().aspectRatio(contentMode: .fill)
+            } placeholder: {
+                Palette.surfaceLight
+            }
+            .frame(height: 300)
+            .frame(maxWidth: .infinity)
+            .clipped()
+            .overlay(alignment: .bottom) {
+                LinearGradient(
+                    stops: [
+                        .init(color: Palette.background, location: 0),
+                        .init(color: Palette.background.opacity(0.6), location: 0.45),
+                        .init(color: .clear, location: 1),
+                    ],
+                    startPoint: .bottom, endPoint: .top
+                )
+                .frame(height: 170)
+                .allowsHitTesting(false)
+            }
+            .overlay(alignment: .top) {
+                LinearGradient(colors: [.black.opacity(0.55), .clear], startPoint: .top, endPoint: .bottom)
+                    .frame(height: 120)
+                    .allowsHitTesting(false)
+            }
+
+            copy(details)
+                .padding(.horizontal, Metric.gutter)
+                .padding(.top, -56)
+        }
+    }
+
+    private func wideHeader(_ details: MediaDetails, height: CGFloat) -> some View {
         ZStack(alignment: .bottomLeading) {
             LinearGradient(
                 stops: [
@@ -109,26 +174,33 @@ struct DetailView: View {
     private func copy(_ details: MediaDetails) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             Text(details.displayTitle)
-                .font(.system(size: 42, weight: .heavy))
-                .tracking(-1.2)
+                .font(.system(size: compact ? 32 : 42, weight: .heavy))
+                .tracking(compact ? -0.8 : -1.2)
                 .foregroundStyle(.white)
-                .lineLimit(2)
+                .lineLimit(compact ? 3 : 2)
                 .shadow(color: .black.opacity(0.45), radius: 12, y: 3)
 
             metaRow(details)
                 .padding(.top, 12)
 
             if !details.genres.isEmpty {
-                HStack(spacing: 8) {
-                    ForEach(details.genres.prefix(4), id: \.id) { genre in
-                        Text(genre.name)
-                            .font(.system(size: 11.5, weight: .medium))
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 5)
-                            .glass(radius: Metric.cardRadius)
+                // A row that scrolls rather than wraps: a phone has room for
+                // two chips, and "Action & Adventure" broken across three
+                // lines is worse than a third chip out of sight.
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(details.genres.prefix(compact ? 6 : 4), id: \.id) { genre in
+                            Text(genre.name)
+                                .font(.system(size: 11.5, weight: .medium))
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 5)
+                                .glass(radius: Metric.cardRadius)
+                                .fixedSize()
+                        }
                     }
                 }
+                .scrollDisabled(!compact)
                 .padding(.top, 14)
             }
 
@@ -142,16 +214,23 @@ struct DetailView: View {
                     .padding(.top, 14)
             }
 
-            HStack(spacing: 10) {
-                NavigationLink(value: target(season: resumePoint.season, episode: resumePoint.episode)) {
-                    ActionLabel(symbol: "play.fill", title: resumeLabel)
-                }
-                .buttonStyle(SolidButtonStyle())
+            // Five controls when signed in, which a phone cannot lay in one
+            // line: the row scrolls, with Play always first and in view.
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    NavigationLink(value: target(season: resumePoint.season, episode: resumePoint.episode)) {
+                        ActionLabel(symbol: "play.fill", title: resumeLabel)
+                    }
+                    .buttonStyle(SolidButtonStyle())
 
-                // Watchlist, favourite, rating and lists — and nothing, for a
-                // viewer who is not signed in, so this row is the row it was.
-                TitleActions(type: type, id: id)
+                    // Watchlist, favourite, rating and lists — and nothing, for a
+                    // viewer who is not signed in, so this row is the row it was.
+                    TitleActions(type: type, id: id)
+                }
+                // Room for the pressed-state scale, which the scroll view clips.
+                .padding(.vertical, 2)
             }
+            .scrollDisabled(!compact)
             .padding(.top, 22)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -160,7 +239,7 @@ struct DetailView: View {
     /// Rating, release, runtime and season count, each behind its own symbol —
     /// four separate facts rather than one long dot-separated string.
     private func metaRow(_ details: MediaDetails) -> some View {
-        HStack(spacing: 18) {
+        HStack(spacing: compact ? 14 : 18) {
             if details.voteAverage > 0 {
                 fact("star.fill", String(format: "%.1f", details.voteAverage), tint: Palette.rating)
             }

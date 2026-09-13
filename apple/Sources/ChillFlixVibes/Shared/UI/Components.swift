@@ -7,8 +7,22 @@ import SwiftUI
 enum Metric {
     static let cardRadius: CGFloat = 12
     static let panelRadius: CGFloat = 16
-    static let posterWidth: CGFloat = 158
     static let railGap: CGFloat = 16
+
+    #if os(iOS)
+    /// Sized for the hand rather than the window. A phone is narrow, so the
+    /// gutters close up and posters come down to three across; a tablet sits
+    /// between it and the Mac. Decided at runtime by idiom, not at compile
+    /// time, because one build serves both.
+    static var posterWidth: CGFloat { isPad ? 150 : 106 }
+    static var gutter: CGFloat { isPad ? 28 : 16 }
+    static var sectionGap: CGFloat { isPad ? 36 : 28 }
+    /// There is no pill to clear on iOS: the navigation bar is real and the
+    /// safe area already accounts for it.
+    static let navClearance: CGFloat = 0
+    private static var isPad: Bool { UIDevice.current.userInterfaceIdiom == .pad }
+    #else
+    static let posterWidth: CGFloat = 158
     static let gutter: CGFloat = 32
     /// The air between one shelf and the next. Sections are told apart by the
     /// space around them rather than by rules or panels.
@@ -24,6 +38,7 @@ enum Metric {
     /// Change the pill and this moves with it. Screens led by artwork skip it on
     /// purpose: there the picture is meant to run underneath.
     static let navClearance: CGFloat = 84
+    #endif
 
     /// How wide the nav pill is, measured — the room down the middle of the top
     /// band that nothing else may occupy.
@@ -53,7 +68,12 @@ enum Metric {
 /// you look at, short enough that the row beneath it still shows, which is what
 /// says the page keeps going.
 func heroHeight(for available: CGFloat) -> CGFloat {
-    min(560, max(360, available * 0.66))
+    #if os(iOS)
+    // A phone is taller than it is wide, so two thirds of it would be a hero
+    // with nothing under it. Just over half leaves the first row showing.
+    if UIDevice.current.userInterfaceIdiom == .phone { return min(500, max(320, available * 0.56)) }
+    #endif
+    return min(560, max(360, available * 0.66))
 }
 
 /// A translucent fill behind a hairline — the surface the web app floats over
@@ -552,3 +572,78 @@ extension View {
     func overlayScrollers() -> some View { self }
 }
 #endif
+
+extension View {
+    /// A toggle for one of several things that can be on at once — a genre, a
+    /// network. A checkbox on the Mac, because that is how macOS says "several";
+    /// on iOS a row with a checkmark, which is how a list there says the same
+    /// and what a thumb can hit.
+    func multiChoiceToggle() -> some View {
+        #if os(macOS)
+        toggleStyle(.checkbox)
+        #else
+        toggleStyle(CheckmarkToggleStyle())
+        #endif
+    }
+}
+
+#if os(iOS)
+struct CheckmarkToggleStyle: ToggleStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        Button {
+            configuration.isOn.toggle()
+        } label: {
+            HStack {
+                configuration.label
+                Spacer()
+                if configuration.isOn {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(.white)
+                }
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+}
+#endif
+
+extension View {
+    /// The top edge of a screen that is not led by artwork.
+    ///
+    /// On the Mac the window still reserves a titlebar it asked not to have,
+    /// so every such screen ignores that inset and clears the nav pill itself
+    /// with `Metric.navClearance`. On iOS the safe area is real — the status
+    /// bar, a navigation bar — and is honoured.
+    func belowTheChrome() -> some View {
+        #if os(macOS)
+        ignoresSafeArea(edges: .top)
+        #else
+        self
+        #endif
+    }
+
+    /// A screen led by artwork, on iOS: the picture runs under the status bar
+    /// and a navigation bar that draws nothing but the back button. The screen
+    /// carries its own title in the hero, so the bar shows none.
+    func heroNavigationBar() -> some View {
+        #if os(iOS)
+        navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(.hidden, for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
+        #else
+        self
+        #endif
+    }
+
+    /// The root of a tab, on iOS: no navigation bar at all. Every root screen
+    /// draws its own heading, and there is nothing to go back to.
+    func rootScreen() -> some View {
+        #if os(iOS)
+        toolbar(.hidden, for: .navigationBar)
+        #else
+        self
+        #endif
+    }
+}

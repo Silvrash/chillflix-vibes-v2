@@ -39,6 +39,11 @@ struct HomeView: View {
         }
         .background(Palette.background)
         .navigationTitle("Home")
+        .rootScreen()
+        // Outermost as well as on the scroll view: on iOS the geometry reader
+        // between them is what is inset by the status bar, and a scroll view
+        // can only ignore an inset its parent has room for.
+        .ignoresSafeArea(edges: .top)
         .task {
             do { trending = try await TmdbClient.shared.trending() } catch { failed = true }
         }
@@ -262,6 +267,9 @@ struct BrowseView: View {
     /// Set when a network tile opened this screen, so it arrives already
     /// filtered rather than on the section's default category.
     var initialNetwork: NetworkFilter?
+    /// Off when the screen sits under a control that already names the
+    /// section — the phone's Movies / TV Shows / Anime switch.
+    var showsHeading = true
 
     /// nil until the viewer picks something, so the screen opens on the
     /// section's first category without duplicating it in two places.
@@ -282,24 +290,55 @@ struct BrowseView: View {
 
     private let columns = [GridItem(.adaptive(minimum: Metric.posterWidth), spacing: Metric.railGap)]
 
+    #if os(iOS)
+    @Environment(\.horizontalSizeClass) private var sizeClass
+    @State private var showingFilters = false
+    /// A phone has no width to spare for a column beside the grid, so the
+    /// same rail opens as a sheet from a button in the heading instead.
+    private var compact: Bool { sizeClass == .compact }
+    #else
+    private let compact = false
+    #endif
+
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
             header
 
-            HStack(alignment: .top, spacing: 26) {
-                BrowseSidebar(section: section, selection: selection, select: { chosen = $0 })
-                    .frame(width: 210)
-                    .padding(.leading, Metric.gutter)
+            if compact {
+                grid.padding(.leading, Metric.gutter)
+            } else {
+                HStack(alignment: .top, spacing: 26) {
+                    BrowseSidebar(section: section, selection: selection, select: { chosen = $0 })
+                        .frame(width: 210)
+                        .padding(.leading, Metric.gutter)
 
-                grid
+                    grid
+                }
             }
         }
         // Same as the home page: the window asked for no titlebar, so the safe
         // area it still reserves at the top is dead space above a heading that
         // is already inset to clear the pill.
-        .ignoresSafeArea(edges: .top)
+        .belowTheChrome()
         .background(Palette.background)
         .navigationTitle(section.label)
+        .rootScreen()
+        #if os(iOS)
+        .sheet(isPresented: $showingFilters) {
+            NavigationStack {
+                BrowseSidebar(section: section, selection: selection, select: { chosen = $0 })
+                    .navigationTitle("Filters")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .confirmationAction) {
+                            Button("Done") { showingFilters = false }
+                        }
+                    }
+            }
+            .preferredColorScheme(.dark)
+            .presentationDetents([.large])
+        }
+        #endif
         .task(id: selection) {
             page = 1
             items = []
@@ -315,15 +354,37 @@ struct BrowseView: View {
     /// columns rather than beside the grid — the rail's own headings read as
     /// parts of the page, not as things the page is subordinate to.
     private var header: some View {
-        VStack(alignment: .leading, spacing: 5) {
-            PageHeading(title: section.label)
-            Text(subtitle)
-                .font(.system(size: 13))
-                .foregroundStyle(Palette.muted)
+        HStack(alignment: .top) {
+            VStack(alignment: .leading, spacing: 5) {
+                if showsHeading { PageHeading(title: section.label) }
+                Text(subtitle)
+                    .font(.system(size: 13))
+                    .foregroundStyle(Palette.muted)
+            }
+            #if os(iOS)
+            if compact {
+                Spacer()
+                Button {
+                    showingFilters = true
+                } label: {
+                    ActionLabel(symbol: "line.3.horizontal.decrease", title: filtersLabel)
+                }
+                .buttonStyle(GlassButtonStyle(active: !selection.genres.isEmpty || selection.network != nil))
+            }
+            #endif
         }
         .padding(.horizontal, Metric.gutter)
         .padding(.top, Metric.navClearance)
     }
+
+    #if os(iOS)
+    /// The category by name, so the button says what the grid is showing
+    /// rather than just that it could be changed.
+    private var filtersLabel: String {
+        let name = selection.preset.name
+        return name.count > 14 ? "Filters" : name
+    }
+    #endif
 
     private var subtitle: String {
         switch section {
@@ -433,26 +494,51 @@ private struct BrowseSidebar: View {
         List(selection: categoryChoice) {
             Section("Categories") {
                 ForEach(section.presets) { preset in
+                    #if os(iOS)
+                    // Not a list selection: on a phone that needs edit mode
+                    // to work at all. A row that ticks itself is the same
+                    // gesture a genre row answers to, one section down.
+                    Button {
+                        pick(preset)
+                    } label: {
+                        HStack {
+                            Text(categoryLabel(preset.name))
+                            Spacer()
+                            if isActive(preset) {
+                                Image(systemName: "checkmark").font(.system(size: 13, weight: .semibold))
+                            }
+                        }
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    #else
                     Text(categoryLabel(preset.name)).tag(preset)
+                    #endif
                 }
             }
 
             Section("Genres") {
                 ForEach(genreOptions, id: \.id) { genre in
-                    Toggle(genre.name, isOn: genreChoice(genre.id)).toggleStyle(.checkbox)
+                    Toggle(genre.name, isOn: genreChoice(genre.id)).multiChoiceToggle()
                 }
             }
 
             if section == .tv {
                 Section("Networks") {
                     ForEach(networks, id: \.self) { network in
-                        Toggle(network.name, isOn: networkChoice(network)).toggleStyle(.checkbox)
+                        Toggle(network.name, isOn: networkChoice(network)).multiChoiceToggle()
                     }
                 }
             }
         }
+        #if os(macOS)
         .listStyle(.sidebar)
+        #else
+        .listStyle(.insetGrouped)
+        .tint(.white)
+        #endif
         .scrollContentBackground(.hidden)
+        .background(Palette.background)
         .overlayScrollers()
     }
 

@@ -1,0 +1,48 @@
+# The iOS and iPadOS app. `xcodegen` turns this into ChillFlixVibes.xcodeproj;
+# the Mac app is built by SwiftPM from Package.swift instead. Both compile the
+# same `Sources/ChillFlixVibes/Shared` tree, each with its own shell beside it.
+#
+#   brew install xcodegen
+#   cd apple && xcodegen generate && open ChillFlixVibes.xcodeproj
+#
+# Signing is automatic: pick your team once under Signing & Capabilities and
+# Xcode provisions the app for your own iPhone or iPad. A free Apple ID works
+# for a week at a time; a paid developer account for a year, or through
+# TestFlight.
+name: ChillFlixVibes
+options:
+  bundleIdPrefix: com.chillflixvibes
+  deploymentTarget:
+    iOS: "18.0"
+  createIntermediateGroups: true
+  xcodeVersion: "16.0"
+  generateEmptyDirectories: false
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    DEVELOPMENT_TEAM: ""
+targets:
+  ChillFlixVibes:
+    type: application
+    platform: iOS
+    sources:
+      - path: Sources/ChillFlixVibes/Shared
+      - path: Sources/ChillFlixVibes/iOS
+      - path: iOS/Assets.xcassets
+    # The plist is hand-written rather than generated: `info:` here would
+    # overwrite it with xcodegen's defaults on every generate, dropping the
+    # launch screen and the URL scheme along the way.
+    settings:
+      base:
+        INFOPLIST_FILE: iOS/Info.plist
+        PRODUCT_BUNDLE_IDENTIFIER: com.chillflixvibes.ios
+        PRODUCT_NAME: ChillFlixVibes
+        TARGETED_DEVICE_FAMILY: "1,2"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        CODE_SIGN_STYLE: Automatic
+        SUPPORTS_MACCATALYST: NO
+        ENABLE_PREVIEWS: YES
+        CURRENT_PROJECT_VERSION: 1
+        MARKETING_VERSION: 1.0
+        GENERATE_INFOPLIST_FILE: NO
