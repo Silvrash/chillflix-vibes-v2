@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { statSync } from "node:fs";
 import path from "node:path";
-import { Laptop, Smartphone, Tv } from "lucide-react";
+import { Laptop, Monitor, Smartphone, Tv } from "lucide-react";
 import { pageMetadata } from "@/lib/seo";
 
 /**
@@ -10,16 +10,21 @@ import { pageMetadata } from "@/lib/seo";
  * None of them come from a store, so this page carries the instructions too —
  * and on each platform the hard part is a different thing. On a television it
  * is knowing that a separate app is how you get a URL onto the box at all; on a
- * Mac it is getting past Gatekeeper, which refuses anything not notarised.
+ * Mac it is getting past Gatekeeper, which refuses anything not notarised; on
+ * Windows it is SmartScreen, which does the same with a button hidden behind
+ * "More info".
  */
 export const metadata: Metadata = pageMetadata({
   title: "Install",
-  description: "Download ChillFlixVibes for Android TV, Google TV and macOS, or install the web app on your phone.",
+  description: "Download ChillFlixVibes for Android TV, Google TV, macOS and Windows, or install the web app on your phone.",
   path: "/install",
 });
 
 const APK_FILE = "chillflixvibes-tv.apk";
 const MAC_FILE = "ChillFlixVibes-mac.zip";
+// Built by the `windows` workflow on a Windows runner and copied here; the
+// Mac zip is built on a Mac and lands here the same way.
+const WINDOWS_FILE = "ChillFlixVibes-windows-setup.exe";
 
 /** Read at build time so the page can't advertise a size the file doesn't have. */
 function fileSize(name: string): string {
@@ -33,14 +38,14 @@ function fileSize(name: string): string {
 
 export default function InstallPage() {
   return (
-    <div className="mx-auto max-w-5xl px-4 pb-16 pt-24 sm:px-6 sm:pt-28 lg:px-10">
+    <div className="mx-auto max-w-6xl px-4 pb-16 pt-24 sm:px-6 sm:pt-28 lg:px-10">
       <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">Install ChillFlixVibes</h1>
       <p className="mt-3 max-w-2xl text-muted">
-        Native apps for the television and the Mac, and the web app itself on a phone. Nothing here comes from a store, so each
-        one has a note about what its platform will ask you first.
+        Native apps for the television, the Mac and Windows, and the web app itself on a phone. Nothing here comes from a
+        store, so each one has a note about what its platform will ask you first.
       </p>
 
-      <div className="mt-10 grid gap-4 lg:grid-cols-3">
+      <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <PlatformCard
           icon={<Tv className="h-5 w-5" />}
           name="Android TV"
@@ -60,6 +65,15 @@ export default function InstallPage() {
           meta={`${fileSize(MAC_FILE)} · unsigned`}
         />
         <PlatformCard
+          icon={<Monitor className="h-5 w-5" />}
+          name="Windows"
+          requirement="Windows 10 or 11 · 64-bit"
+          blurb="The site in a window of its own — its icon on the taskbar, playback full-screen, and sign-in that stays signed in. A small installer; it uses the web engine Windows already ships."
+          href={`/${WINDOWS_FILE}`}
+          action="Download for Windows"
+          meta={`${fileSize(WINDOWS_FILE)} · unsigned`}
+        />
+        <PlatformCard
           icon={<Smartphone className="h-5 w-5" />}
           name="Android & iPhone"
           requirement="Any modern mobile browser"
@@ -73,6 +87,7 @@ export default function InstallPage() {
       </div>
 
       <MacSteps />
+      <WindowsSteps />
     </div>
   );
 }
@@ -136,6 +151,27 @@ function MacSteps() {
       </p>
       <p className="mt-4 text-sm text-muted">
         Unzip it, drag ChillFlixVibes to your Applications folder, then right-click → Open.
+      </p>
+    </section>
+  );
+}
+
+function WindowsSteps() {
+  return (
+    <section className="mt-14">
+      <h2 className="text-2xl font-bold">Opening it on Windows</h2>
+      {/* SmartScreen is the Windows counterpart of Gatekeeper: an unsigned
+          installer downloaded from a browser gets a full-screen "Windows
+          protected your PC" with only a Don't run button showing. The Run
+          anyway button exists, but only after More info is clicked, which
+          nothing on that screen suggests. */}
+      <p className="mt-2 max-w-2xl text-muted">
+        The installer isn&apos;t signed, so the first time Windows shows &ldquo;Windows protected your PC&rdquo; with nothing
+        but a Don&apos;t run button. Click <strong className="text-white">More info</strong>, and a{" "}
+        <strong className="text-white">Run anyway</strong> button appears underneath. It only asks once.
+      </p>
+      <p className="mt-4 text-sm text-muted">
+        It installs for your own account, without asking for an administrator, and adds itself to the Start menu.
       </p>
     </section>
   );
